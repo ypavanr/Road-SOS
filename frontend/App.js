@@ -10,6 +10,7 @@ import {
   ROADSIDE_SERVICE_URL,
   EMERGENCY_CONTACTS_SERVICE_URL,
 } from './config';
+import { startRecording, stopRecording, uploadAudio } from './src/services/audioService';
 
 // ─── Facility metadata ───────────────────────────────────────────────────────
 
@@ -148,6 +149,10 @@ export default function App() {
   const [locationError, setLocationError] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcribedText, setTranscribedText] = useState(null);
+  const [recordingError, setRecordingError] = useState(null);
+
   const [medicalFacilities, setMedicalFacilities] = useState([]);
   const [roadsideFacilities, setRoadsideFacilities] = useState([]);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
@@ -166,6 +171,11 @@ export default function App() {
         setLocationLoading(false);
         return;
       }
+      // Request microphone permissions
+      // Note: React Native Audio Recorder Player might need separate permission handlers, 
+      // but in Expo, permissions are often requested via the module or Expo modules. 
+      // For bare React Native we would use PermissionsAndroid. 
+      
       subscriber = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
         (loc) => { setLocation(loc); setLocationLoading(false); }
@@ -222,6 +232,42 @@ export default function App() {
     setFetchedOnce(true);
   }, [location]);
 
+  const handleRecordSOS = async () => {
+    if (isRecording) {
+      // Stop recording
+      setIsRecording(false);
+      const filePath = await stopRecording();
+      if (filePath) {
+        setLoading(true);
+        setRecordingError(null);
+        setTranscribedText('Uploading and analyzing audio...');
+        
+        const result = await uploadAudio(filePath);
+        setLoading(false);
+        
+        if (result.success) {
+          setTranscribedText(`Transcription [${result.provider}, ${result.language}]: "${result.text}"`);
+          // Note: In real system, we'd send this to classifier-service next.
+        } else {
+          setRecordingError(result.error || 'Transcription failed');
+          setTranscribedText(null);
+        }
+      } else {
+        setRecordingError('Failed to capture audio.');
+      }
+    } else {
+      // Start recording
+      setRecordingError(null);
+      setTranscribedText(null);
+      const started = await startRecording();
+      if (started) {
+        setIsRecording(true);
+      } else {
+        setRecordingError('Could not start recording. Check permissions.');
+      }
+    }
+  };
+
   const { latitude, longitude, accuracy } = location?.coords ?? {};
 
   return (
@@ -264,12 +310,39 @@ export default function App() {
         disabled={!location || loading}
         activeOpacity={0.8}
       >
-        {loading ? (
+        {loading && !isRecording && !transcribedText ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <Text style={styles.sosText}>Find Nearby Help</Text>
         )}
       </TouchableOpacity>
+
+      {/* Record SOS Audio Button */}
+      <TouchableOpacity
+        style={[
+          styles.sos, 
+          styles.recordBtn, 
+          isRecording && styles.recordingActive
+        ]}
+        onPress={handleRecordSOS}
+        disabled={!location || (loading && !isRecording)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.sosText}>
+          {isRecording ? '🛑 Stop & Upload SOS Audio' : '🎤 Record SOS Audio'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Transcription Result */}
+      {transcribedText ? (
+        <View style={styles.transcriptionBox}>
+          <Text style={styles.transcriptionText}>{transcribedText}</Text>
+        </View>
+      ) : null}
+      
+      {recordingError ? (
+        <Text style={styles.error}>{recordingError}</Text>
+      ) : null}
 
       {/* Results */}
       {fetchedOnce && (
@@ -345,9 +418,22 @@ const styles = StyleSheet.create({
   // SOS button
   sos: {
     backgroundColor: '#dc2626', borderRadius: 14, paddingVertical: 18,
-    alignItems: 'center', marginBottom: 24,
+    alignItems: 'center', marginBottom: 16,
     shadowColor: '#dc2626', shadowOpacity: 0.4, shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  recordBtn: {
+    backgroundColor: '#0f172a', shadowColor: '#0f172a',
+  },
+  recordingActive: {
+    backgroundColor: '#ef4444',
+  },
+  transcriptionBox: {
+    backgroundColor: '#e0f2fe', padding: 12, borderRadius: 10, marginBottom: 16,
+    borderColor: '#38bdf8', borderWidth: 1
+  },
+  transcriptionText: {
+    color: '#0369a1', fontSize: 14, fontWeight: '600', textAlign: 'center'
   },
   sosDisabled: { backgroundColor: '#94a3b8', shadowOpacity: 0 },
   sosText: { color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },

@@ -1,0 +1,7 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "")
+SARVAM_API_URL = os.getenv("SARVAM_API_URL", "https://api.sarvam.ai/speech-to-text-translate")

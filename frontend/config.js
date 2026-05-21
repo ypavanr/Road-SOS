@@ -14,3 +14,4 @@ if (!BASE_IP || BASE_IP === "192.168.x.x") {
 export const HOSPITAL_SERVICE_URL          = `http://${BASE_IP}:8001`;
 export const ROADSIDE_SERVICE_URL          = `http://${BASE_IP}:8002`;
 export const EMERGENCY_CONTACTS_SERVICE_URL = `http://${BASE_IP}:8003`;
+export const SPEECH_SERVICE_URL             = `http://${BASE_IP}:8006`; // We use 8006 to avoid clash with roadside (8002)
