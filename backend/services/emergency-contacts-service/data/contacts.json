@@ -1,0 +1,163 @@
+{
+  "IN": {
+    "national": [
+      {
+        "name": "National Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "Single number for police, fire, and medical emergencies",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "100",
+        "type": "police",
+        "description": "Local police emergency response",
+        "always_available": true
+      },
+      {
+        "name": "Fire Brigade",
+        "number": "101",
+        "type": "fire",
+        "description": "Fire emergency response",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "108",
+        "type": "ambulance",
+        "description": "Emergency ambulance service (available in most states)",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance (EMRI)",
+        "number": "102",
+        "type": "ambulance",
+        "description": "Ambulance for maternal and child emergencies (some states)",
+        "always_available": true
+      },
+      {
+        "name": "NHAI Highway Helpline",
+        "number": "1033",
+        "type": "highway",
+        "description": "National Highway Authority — road accidents, towing, highway emergencies",
+        "always_available": true
+      },
+      {
+        "name": "Road Transport Helpline",
+        "number": "1800-180-1515",
+        "type": "highway",
+        "description": "Ministry of Road Transport and Highways helpline",
+        "always_available": true
+      },
+      {
+        "name": "Disaster Management",
+        "number": "1078",
+        "type": "disaster",
+        "description": "National Disaster Response Force (NDRF)",
+        "always_available": true
+      },
+      {
+        "name": "Women Helpline",
+        "number": "181",
+        "type": "women",
+        "description": "Women in distress — state women helpline",
+        "always_available": true
+      },
+      {
+        "name": "Women Helpline (Police)",
+        "number": "1091",
+        "type": "women",
+        "description": "Police-run women safety helpline",
+        "always_available": true
+      },
+      {
+        "name": "Child Helpline",
+        "number": "1098",
+        "type": "child",
+        "description": "CHILDLINE India Foundation — children in distress",
+        "always_available": true
+      },
+      {
+        "name": "Senior Citizen Helpline",
+        "number": "14567",
+        "type": "senior",
+        "description": "Elder Line — helpline for senior citizens",
+        "always_available": true
+      },
+      {
+        "name": "Anti-Poison Centre",
+        "number": "1800-116-117",
+        "type": "medical",
+        "description": "National Poison Information Centre — 24/7 poison emergencies",
+        "always_available": true
+      },
+      {
+        "name": "Mental Health Helpline",
+        "number": "iCall: 9152987821",
+        "type": "medical",
+        "description": "iCall — psychological support and mental health",
+        "always_available": false
+      }
+    ],
+    "states": {
+      "Karnataka": [
+        {
+          "name": "Karnataka Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "GVK EMRI ambulance service for Karnataka",
+          "always_available": true
+        },
+        {
+          "name": "Bengaluru Traffic Police",
+          "number": "103",
+          "type": "police",
+          "description": "Bengaluru city traffic police helpline",
+          "always_available": true
+        }
+      ],
+      "Maharashtra": [
+        {
+          "name": "Maharashtra Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Emergency ambulance service for Maharashtra",
+          "always_available": true
+        },
+        {
+          "name": "Mumbai Traffic Police",
+          "number": "103",
+          "type": "police",
+          "description": "Mumbai traffic control room",
+          "always_available": true
+        }
+      ],
+      "Tamil Nadu": [
+        {
+          "name": "Tamil Nadu Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "GVK EMRI ambulance for Tamil Nadu",
+          "always_available": true
+        }
+      ],
+      "Delhi": [
+        {
+          "name": "Delhi Ambulance",
+          "number": "102",
+          "type": "ambulance",
+          "description": "Delhi ambulance service",
+          "always_available": true
+        },
+        {
+          "name": "Delhi Traffic Helpline",
+          "number": "1095",
+          "type": "highway",
+          "description": "Delhi traffic police helpline",
+          "always_available": true
+        }
+      ]
+    }
+  }
+}

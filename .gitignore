@@ -9,5 +9,21 @@ frontend/.expo/
 frontend/dist/
 frontend/web-build/
 
+# Frontend env (contains LAN IP — different per machine)
+frontend/.env
+!frontend/.env.example
+
 # OS
 .DS_Store
+
+# Python
+backend/**/.venv/
+backend/**/__pycache__/
+backend/**/*.pyc
+
+# Secrets — track examples, ignore actuals
+backend/**/.env
+!backend/**/.env.example
+
+# Cache databases
+backend/**/cache/*.db
