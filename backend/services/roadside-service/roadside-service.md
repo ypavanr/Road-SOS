@@ -10,20 +10,23 @@ Finds nearby roadside assistance from a given GPS coordinate. Returns towing ser
 
 - Python 3.10+
 
-## First-time Setup
+## First-time Setup & Run
 
+**macOS / Linux / zsh:**
 ```bash
 cd backend/services/roadside-service
 bash setup.sh
+source .venv/bin/activate
+python main.py
 ```
 
-This creates a virtual environment, installs dependencies, creates the `cache/` directory, and copies `.env.example` → `.env`.
-
-## Run
-
-```bash
-cd backend/services/roadside-service
-source .venv/bin/activate
+**Windows (PowerShell):**
+```powershell
+cd backend\services\roadside-service
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+mkdir -p cache
 python main.py
 ```
 

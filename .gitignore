@@ -27,3 +27,4 @@ backend/**/.env
 
 # Cache databases
 backend/**/cache/*.db
+venv

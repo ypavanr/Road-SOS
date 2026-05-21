@@ -1,15 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet, Text, View, ActivityIndicator, ScrollView,
-  TouchableOpacity, Linking, Alert, SectionList,
+  TouchableOpacity, Linking, Alert, SectionList, TextInput,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
-import {
-  HOSPITAL_SERVICE_URL,
-  ROADSIDE_SERVICE_URL,
-  EMERGENCY_CONTACTS_SERVICE_URL,
-} from './config';
+import { API_GATEWAY_URL } from './config';
 import { startRecording, stopRecording, uploadAudio } from './src/services/audioService';
 
 // ─── Facility metadata ───────────────────────────────────────────────────────
@@ -28,6 +24,7 @@ const FACILITY_META = {
   tyre_shop:           { emoji: '🔩', color: '#059669', label: 'Tyre / Puncture Shop' },
   car_repair:          { emoji: '🔨', color: '#65a30d', label: 'Car Repair' },
   fuel_station:        { emoji: '⛽', color: '#ca8a04', label: 'Fuel Station' },
+  showroom:            { emoji: '🚗', color: '#4f46e5', label: 'Vehicle Showroom' },
 };
 
 const CONTACT_META = {
@@ -162,6 +159,11 @@ export default function App() {
   const [meta, setMeta] = useState({});
   const [fetchedOnce, setFetchedOnce] = useState(false);
 
+  // Classification State
+  const [textInput, setTextInput] = useState('');
+  const [classification, setClassification] = useState(null);
+  const [classifying, setClassifying] = useState(false);
+
   useEffect(() => {
     let subscriber;
     (async () => {
@@ -195,9 +197,9 @@ export default function App() {
     const headers = { 'Content-Type': 'application/json' };
 
     const [medicalRes, roadsideRes, contactsRes] = await Promise.allSettled([
-      fetch(`${HOSPITAL_SERVICE_URL}/nearby`, { method: 'POST', headers, body }),
-      fetch(`${ROADSIDE_SERVICE_URL}/nearby`, { method: 'POST', headers, body }),
-      fetch(`${EMERGENCY_CONTACTS_SERVICE_URL}/contacts?lat=${lat}&lon=${lon}`),
+      fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
+      fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
+      fetch(`${API_GATEWAY_URL}/contacts?lat=${lat}&lon=${lon}`),
     ]);
 
     const newErrors = {};
@@ -232,6 +234,33 @@ export default function App() {
     setFetchedOnce(true);
   }, [location]);
 
+  const handleClassify = async (textToClassify) => {
+    if (!textToClassify || !textToClassify.trim()) return;
+    setClassifying(true);
+    setClassification(null);
+    try {
+      const response = await fetch(`${API_GATEWAY_URL}/classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToClassify }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setClassification(data);
+        // Always fetch nearby + contacts when classification runs
+        if (data.is_emergency) {
+          findNearby(false);
+        }
+      } else {
+        setErrors(prev => ({ ...prev, classification: 'Classification failed.' }));
+      }
+    } catch (e) {
+      setErrors(prev => ({ ...prev, classification: e.message }));
+    } finally {
+      setClassifying(false);
+    }
+  };
+
   const handleRecordSOS = async () => {
     if (isRecording) {
       // Stop recording
@@ -247,7 +276,7 @@ export default function App() {
         
         if (result.success) {
           setTranscribedText(`Transcription [${result.provider}, ${result.language}]: "${result.text}"`);
-          // Note: In real system, we'd send this to classifier-service next.
+          await handleClassify(result.text);
         } else {
           setRecordingError(result.error || 'Transcription failed');
           setTranscribedText(null);
@@ -288,12 +317,31 @@ export default function App() {
         )}
       </View>
 
-      {/* Emergency contacts strip — always show if loaded */}
+      {/* Emergency contacts strip — filter by classification when available */}
       {emergencyContacts.length > 0 && (
         <View style={styles.contactsSection}>
           <Text style={styles.contactsSectionTitle}>Emergency Numbers</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-            {emergencyContacts.map((c, i) => (
+            {emergencyContacts
+              .filter(c => {
+                if (!classification) return true;
+                // Map classifier broad categories to contact types
+                const typeMap = {
+                  medical: ['emergency', 'ambulance', 'medical'],
+                  police: ['emergency', 'police'],
+                  roadside: ['emergency', 'highway'],
+                };
+                const relevantTypes = new Set(['emergency']); // always show general emergency
+                classification.broad_categories.forEach(bc => {
+                  (typeMap[bc] || []).forEach(t => relevantTypes.add(t));
+                });
+                // If fire_station is in specific_facilities, also show fire contacts
+                if (classification.specific_facilities.includes('fire_station')) {
+                  relevantTypes.add('fire');
+                }
+                return relevantTypes.has(c.type);
+              })
+              .map((c, i) => (
               <EmergencyContactChip key={i} contact={c} />
             ))}
           </ScrollView>
@@ -344,35 +392,118 @@ export default function App() {
         <Text style={styles.error}>{recordingError}</Text>
       ) : null}
 
+      {/* Manual Text SOS */}
+      <View style={styles.textInputBox}>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Or type your emergency here..."
+          value={textInput}
+          onChangeText={setTextInput}
+        />
+        <TouchableOpacity
+          style={[styles.textInputBtn, (!textInput || classifying) && styles.sosDisabled]}
+          onPress={() => {
+            setTranscribedText(`Manual Input: "${textInput}"`);
+            handleClassify(textInput);
+            setTextInput('');
+          }}
+          disabled={!textInput || classifying}
+        >
+          {classifying ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.textInputBtnText}>Send SOS</Text>}
+        </TouchableOpacity>
+      </View>
+
+      {/* Classification Details */}
+      {classification && (
+        <View style={styles.classificationBox}>
+          <View style={styles.classHeaderRow}>
+            <Text style={styles.classificationTitle}>
+              {classification.is_emergency ? '🚨' : 'ℹ️'} AI Triage Assessment
+            </Text>
+            <View style={[styles.confBadge, { backgroundColor: classification.confidence_score >= 0.7 ? '#dcfce7' : '#fef3c7' }]}>
+              <Text style={[styles.confBadgeText, { color: classification.confidence_score >= 0.7 ? '#166534' : '#92400e' }]}>
+                {(classification.confidence_score * 100).toFixed(0)}% ({classification.engine_used})
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.classificationText}>
+            Emergency: {classification.is_emergency ? '✅ Yes' : '❌ No'}
+          </Text>
+
+          {/* Broad categories */}
+          <View style={styles.broadRow}>
+            {classification.broad_categories.map(bc => (
+              <View key={bc} style={styles.broadBadge}>
+                <Text style={styles.broadBadgeText}>
+                  {bc === 'medical' ? '🏥 Medical' : bc === 'police' ? '🚔 Police' : '🔧 Roadside'}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Explanation */}
+          <View style={styles.explanationBox}>
+            <Text style={styles.explanationLabel}>Why this classification:</Text>
+            <Text style={styles.explanationText}>{classification.explanation}</Text>
+          </View>
+
+          {/* Specific facilities needed */}
+          <Text style={styles.facilitiesNeededLabel}>Specific assistance needed:</Text>
+          <View style={styles.badgeRow}>
+            {classification.specific_facilities.map(fac => {
+              const m = facilityMeta(fac);
+              return (
+                <View key={fac} style={[styles.facBadge, { backgroundColor: m.color + '18' }]}>
+                  <Text style={[styles.facBadgeText, { color: m.color }]}>{m.emoji} {m.label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       {/* Results */}
       {fetchedOnce && (
         <>
           {/* Medical & Safety */}
-          <SectionHeader
-            title="Medical & Safety"
-            count={medicalFacilities.length}
-            cached={meta.medicalCached}
-          />
-          {errors.medical ? (
-            <Text style={styles.error}>{errors.medical}</Text>
-          ) : medicalFacilities.length === 0 ? (
-            <Text style={styles.empty}>No facilities found nearby.</Text>
-          ) : (
-            medicalFacilities.map((f) => <FacilityCard key={f.id} facility={f} />)
+          {(!classification || classification.broad_categories.includes('medical') || classification.broad_categories.includes('police')) && (
+            <>
+              <SectionHeader
+                title="Medical & Safety"
+                count={medicalFacilities.filter(f => !classification || classification.specific_facilities.includes(f.type)).length}
+                cached={meta.medicalCached}
+              />
+              {errors.medical ? (
+                <Text style={styles.error}>{errors.medical}</Text>
+              ) : medicalFacilities.filter(f => !classification || classification.specific_facilities.includes(f.type)).length === 0 ? (
+                <Text style={styles.empty}>No matching facilities found nearby.</Text>
+              ) : (
+                medicalFacilities
+                  .filter(f => !classification || classification.specific_facilities.includes(f.type))
+                  .map((f) => <FacilityCard key={f.id} facility={f} />)
+              )}
+            </>
           )}
 
           {/* Roadside Assistance */}
-          <SectionHeader
-            title="Roadside Assistance"
-            count={roadsideFacilities.length}
-            cached={meta.roadsideCached}
-          />
-          {errors.roadside ? (
-            <Text style={styles.error}>{errors.roadside}</Text>
-          ) : roadsideFacilities.length === 0 ? (
-            <Text style={styles.empty}>No roadside services found nearby.</Text>
-          ) : (
-            roadsideFacilities.map((f) => <FacilityCard key={f.id} facility={f} />)
+          {(!classification || classification.broad_categories.includes('roadside')) && (
+            <>
+              <SectionHeader
+                title="Roadside Assistance"
+                count={roadsideFacilities.filter(f => !classification || classification.specific_facilities.includes(f.type)).length}
+                cached={meta.roadsideCached}
+              />
+              {errors.roadside ? (
+                <Text style={styles.error}>{errors.roadside}</Text>
+              ) : roadsideFacilities.filter(f => !classification || classification.specific_facilities.includes(f.type)).length === 0 ? (
+                <Text style={styles.empty}>No matching roadside services found nearby.</Text>
+              ) : (
+                roadsideFacilities
+                  .filter(f => !classification || classification.specific_facilities.includes(f.type))
+                  .map((f) => <FacilityCard key={f.id} facility={f} />)
+              )}
+            </>
           )}
         </>
       )}
@@ -440,6 +571,28 @@ const styles = StyleSheet.create({
 
   error: { color: '#dc2626', textAlign: 'center', marginBottom: 12, lineHeight: 20 },
   empty: { color: '#94a3b8', textAlign: 'center', marginBottom: 12, fontStyle: 'italic' },
+
+  textInputBox: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  textInput: { flex: 1, backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, borderWidth: 1, borderColor: '#cbd5e1' },
+  textInputBtn: { backgroundColor: '#1d4ed8', borderRadius: 10, justifyContent: 'center', paddingHorizontal: 16 },
+  textInputBtnText: { color: '#fff', fontWeight: '700' },
+
+  classificationBox: { backgroundColor: '#f0fdf4', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#86efac' },
+  classHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  classificationTitle: { fontSize: 16, fontWeight: '800', color: '#166534' },
+  classificationText: { fontSize: 13, color: '#15803d', marginBottom: 6 },
+  confBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  confBadgeText: { fontSize: 11, fontWeight: '700' },
+  broadRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  broadBadge: { backgroundColor: '#dbeafe', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  broadBadgeText: { fontSize: 12, fontWeight: '700', color: '#1e40af' },
+  explanationBox: { backgroundColor: '#ecfdf5', borderRadius: 8, padding: 10, marginBottom: 10 },
+  explanationLabel: { fontSize: 11, fontWeight: '700', color: '#065f46', marginBottom: 3 },
+  explanationText: { fontSize: 12, color: '#047857', lineHeight: 18 },
+  facilitiesNeededLabel: { fontSize: 11, fontWeight: '700', color: '#065f46', marginBottom: 6 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  facBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  facBadgeText: { fontSize: 12, fontWeight: '700' },
 
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

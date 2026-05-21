@@ -20,30 +20,41 @@ A multilingual voice-to-text microservice designed for emergency situations. It 
 
 ## First-time Setup
 
-1. **Create Virtual Environment & Install Dependencies:**
-```powershell
+**macOS / Linux / zsh:**
+```bash
 cd backend/services/speech-service
-python -m venv venv
-.\venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. **Environment Variables:**
-Copy the example file to create your active `.env`:
+**Windows (PowerShell):**
 ```powershell
-cp .env.example .env
+cd backend\services\speech-service
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
+
 Open `.env` and add your `SARVAM_API_KEY` if you have one. If left blank, the service will gracefully fall back to the local Whisper model.
 
 ## Run
 
-To start the server locally:
-```powershell
+**macOS / Linux / zsh:**
+```bash
 cd backend/services/speech-service
-.\venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8006
+source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8006
 ```
-*Note: Using `--host 0.0.0.0` is required so the React Native frontend on your mobile phone can connect over the local network.*
+
+**Windows (PowerShell):**
+```powershell
+cd backend\services\speech-service
+venv\Scripts\Activate.ps1
+uvicorn app.main:app --host 0.0.0.0 --port 8006
+```
+
+*Note: `--host 0.0.0.0` is required so your phone can connect over local Wi-Fi.*
 
 ## API Reference
 

@@ -26,6 +26,11 @@ ROADSIDE_QUERIES = [
     # Fuel stations
     'node["amenity"="fuel"]',
     'way["amenity"="fuel"]',
+    # Showrooms / Dealerships
+    'node["shop"="car"]',
+    'way["shop"="car"]',
+    'node["shop"="motorcycle"]',
+    'way["shop"="motorcycle"]',
 ]
 
 
@@ -45,6 +50,8 @@ def _infer_type(tags: dict) -> str:
         return "tyre_shop"
     if amenity == "fuel":
         return "fuel_station"
+    if shop in ("car", "motorcycle"):
+        return "showroom"
     if shop in ("car_repair", "motorcycle_repair") or craft in ("car_repair", "mechanic", "motorcycle_repair"):
         return "car_repair"
     return "car_repair"

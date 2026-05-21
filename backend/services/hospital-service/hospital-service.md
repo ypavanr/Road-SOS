@@ -12,18 +12,36 @@ Finds and ranks nearby emergency medical and safety facilities from a given GPS 
 
 ## First-time Setup
 
+**macOS / Linux / zsh:**
 ```bash
 cd backend/services/hospital-service
 bash setup.sh
 ```
 
-This creates a virtual environment, installs dependencies, creates the `cache/` directory, and copies `.env.example` → `.env`.
+**Windows (PowerShell):**
+```powershell
+cd backend\services\hospital-service
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+mkdir -p cache
+```
+
+This creates a virtual environment, installs dependencies, and creates the `cache/` directory.
 
 ## Run
 
+**macOS / Linux / zsh:**
 ```bash
 cd backend/services/hospital-service
 source .venv/bin/activate
+python main.py
+```
+
+**Windows (PowerShell):**
+```powershell
+cd backend\services\hospital-service
+.venv\Scripts\Activate.ps1
 python main.py
 ```
 

@@ -10,18 +10,22 @@ No database, no Overpass queries — starts instantly.
 
 - Python 3.10+
 
-## First-time Setup
+## First-time Setup & Run
 
+**macOS / Linux / zsh:**
 ```bash
 cd backend/services/emergency-contacts-service
 bash setup.sh
+source .venv/bin/activate
+python main.py
 ```
 
-## Run
-
-```bash
-cd backend/services/emergency-contacts-service
-source .venv/bin/activate
+**Windows (PowerShell):**
+```powershell
+cd backend\services\emergency-contacts-service
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 python main.py
 ```
 

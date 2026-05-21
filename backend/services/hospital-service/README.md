@@ -11,19 +11,23 @@ Finds and ranks nearby emergency facilities (hospitals, trauma centers, police s
 | Local SQLite cache | Offline fallback; serves stale data when APIs are unavailable |
 | ABDM HFR (optional) | India govt hospital registry — requires Bearer token |
 
-## Setup
+## Setup & Run
 
+**macOS / Linux / zsh:**
 ```bash
 cd backend/services/hospital-service
 bash setup.sh
+source .venv/bin/activate
+python main.py
 ```
 
-This creates a `.venv`, installs dependencies, creates the `cache/` directory, and copies `.env.example` → `.env`.
-
-## Run
-
-```bash
-source .venv/bin/activate
+**Windows (PowerShell):**
+```powershell
+cd backend\services\hospital-service
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+mkdir -p cache
 python main.py
 ```
 

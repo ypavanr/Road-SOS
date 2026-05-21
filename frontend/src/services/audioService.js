@@ -1,5 +1,5 @@
 import { Audio } from 'expo-av';
-import { SPEECH_SERVICE_URL } from '../../config';
+import { API_GATEWAY_URL } from '../../config';
 
 let recording = null;
 let currentPath = null;
@@ -67,7 +67,7 @@ export const uploadAudio = async (filePath) => {
       type: 'audio/m4a',
     });
 
-    const response = await fetch(`${SPEECH_SERVICE_URL}/transcribe`, {
+    const response = await fetch(`${API_GATEWAY_URL}/transcribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'multipart/form-data',

@@ -26,28 +26,14 @@
         "name": "Ambulance",
         "number": "108",
         "type": "ambulance",
-        "description": "Emergency ambulance service (available in most states)",
-        "always_available": true
-      },
-      {
-        "name": "Ambulance (EMRI)",
-        "number": "102",
-        "type": "ambulance",
-        "description": "Ambulance for maternal and child emergencies (some states)",
+        "description": "Emergency ambulance service",
         "always_available": true
       },
       {
         "name": "NHAI Highway Helpline",
         "number": "1033",
         "type": "highway",
-        "description": "National Highway Authority — road accidents, towing, highway emergencies",
-        "always_available": true
-      },
-      {
-        "name": "Road Transport Helpline",
-        "number": "1800-180-1515",
-        "type": "highway",
-        "description": "Ministry of Road Transport and Highways helpline",
+        "description": "National Highway Authority",
         "always_available": true
       },
       {
@@ -61,59 +47,223 @@
         "name": "Women Helpline",
         "number": "181",
         "type": "women",
-        "description": "Women in distress — state women helpline",
-        "always_available": true
-      },
-      {
-        "name": "Women Helpline (Police)",
-        "number": "1091",
-        "type": "women",
-        "description": "Police-run women safety helpline",
+        "description": "Women in distress",
         "always_available": true
       },
       {
         "name": "Child Helpline",
         "number": "1098",
         "type": "child",
-        "description": "CHILDLINE India Foundation — children in distress",
+        "description": "CHILDLINE India Foundation",
         "always_available": true
-      },
-      {
-        "name": "Senior Citizen Helpline",
-        "number": "14567",
-        "type": "senior",
-        "description": "Elder Line — helpline for senior citizens",
-        "always_available": true
-      },
-      {
-        "name": "Anti-Poison Centre",
-        "number": "1800-116-117",
-        "type": "medical",
-        "description": "National Poison Information Centre — 24/7 poison emergencies",
-        "always_available": true
-      },
-      {
-        "name": "Mental Health Helpline",
-        "number": "iCall: 9152987821",
-        "type": "medical",
-        "description": "iCall — psychological support and mental health",
-        "always_available": false
       }
     ],
     "states": {
+      "Andhra Pradesh": [
+        {
+          "name": "Andhra Pradesh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Andhra Pradesh",
+          "always_available": true
+        },
+        {
+          "name": "Andhra Pradesh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Andhra Pradesh",
+          "always_available": true
+        }
+      ],
+      "Arunachal Pradesh": [
+        {
+          "name": "Arunachal Pradesh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Arunachal Pradesh",
+          "always_available": true
+        },
+        {
+          "name": "Arunachal Pradesh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Arunachal Pradesh",
+          "always_available": true
+        }
+      ],
+      "Assam": [
+        {
+          "name": "Assam Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Assam",
+          "always_available": true
+        },
+        {
+          "name": "Assam Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Assam",
+          "always_available": true
+        }
+      ],
+      "Bihar": [
+        {
+          "name": "Bihar Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Bihar",
+          "always_available": true
+        },
+        {
+          "name": "Bihar Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Bihar",
+          "always_available": true
+        }
+      ],
+      "Chhattisgarh": [
+        {
+          "name": "Chhattisgarh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Chhattisgarh",
+          "always_available": true
+        },
+        {
+          "name": "Chhattisgarh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Chhattisgarh",
+          "always_available": true
+        }
+      ],
+      "Goa": [
+        {
+          "name": "Goa Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Goa",
+          "always_available": true
+        },
+        {
+          "name": "Goa Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Goa",
+          "always_available": true
+        }
+      ],
+      "Gujarat": [
+        {
+          "name": "Gujarat Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Gujarat",
+          "always_available": true
+        },
+        {
+          "name": "Gujarat Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Gujarat",
+          "always_available": true
+        }
+      ],
+      "Haryana": [
+        {
+          "name": "Haryana Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Haryana",
+          "always_available": true
+        },
+        {
+          "name": "Haryana Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Haryana",
+          "always_available": true
+        }
+      ],
+      "Himachal Pradesh": [
+        {
+          "name": "Himachal Pradesh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Himachal Pradesh",
+          "always_available": true
+        },
+        {
+          "name": "Himachal Pradesh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Himachal Pradesh",
+          "always_available": true
+        }
+      ],
+      "Jharkhand": [
+        {
+          "name": "Jharkhand Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Jharkhand",
+          "always_available": true
+        },
+        {
+          "name": "Jharkhand Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Jharkhand",
+          "always_available": true
+        }
+      ],
       "Karnataka": [
         {
           "name": "Karnataka Ambulance",
           "number": "108",
           "type": "ambulance",
-          "description": "GVK EMRI ambulance service for Karnataka",
+          "description": "Ambulance service for Karnataka",
           "always_available": true
         },
         {
-          "name": "Bengaluru Traffic Police",
-          "number": "103",
+          "name": "Karnataka Police Control Room",
+          "number": "100",
           "type": "police",
-          "description": "Bengaluru city traffic police helpline",
+          "description": "Police control for Karnataka",
+          "always_available": true
+        }
+      ],
+      "Kerala": [
+        {
+          "name": "Kerala Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Kerala",
+          "always_available": true
+        },
+        {
+          "name": "Kerala Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Kerala",
+          "always_available": true
+        }
+      ],
+      "Madhya Pradesh": [
+        {
+          "name": "Madhya Pradesh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Madhya Pradesh",
+          "always_available": true
+        },
+        {
+          "name": "Madhya Pradesh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Madhya Pradesh",
           "always_available": true
         }
       ],
@@ -122,14 +272,142 @@
           "name": "Maharashtra Ambulance",
           "number": "108",
           "type": "ambulance",
-          "description": "Emergency ambulance service for Maharashtra",
+          "description": "Ambulance service for Maharashtra",
           "always_available": true
         },
         {
-          "name": "Mumbai Traffic Police",
-          "number": "103",
+          "name": "Maharashtra Police Control Room",
+          "number": "100",
           "type": "police",
-          "description": "Mumbai traffic control room",
+          "description": "Police control for Maharashtra",
+          "always_available": true
+        }
+      ],
+      "Manipur": [
+        {
+          "name": "Manipur Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Manipur",
+          "always_available": true
+        },
+        {
+          "name": "Manipur Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Manipur",
+          "always_available": true
+        }
+      ],
+      "Meghalaya": [
+        {
+          "name": "Meghalaya Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Meghalaya",
+          "always_available": true
+        },
+        {
+          "name": "Meghalaya Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Meghalaya",
+          "always_available": true
+        }
+      ],
+      "Mizoram": [
+        {
+          "name": "Mizoram Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Mizoram",
+          "always_available": true
+        },
+        {
+          "name": "Mizoram Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Mizoram",
+          "always_available": true
+        }
+      ],
+      "Nagaland": [
+        {
+          "name": "Nagaland Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Nagaland",
+          "always_available": true
+        },
+        {
+          "name": "Nagaland Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Nagaland",
+          "always_available": true
+        }
+      ],
+      "Odisha": [
+        {
+          "name": "Odisha Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Odisha",
+          "always_available": true
+        },
+        {
+          "name": "Odisha Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Odisha",
+          "always_available": true
+        }
+      ],
+      "Punjab": [
+        {
+          "name": "Punjab Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Punjab",
+          "always_available": true
+        },
+        {
+          "name": "Punjab Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Punjab",
+          "always_available": true
+        }
+      ],
+      "Rajasthan": [
+        {
+          "name": "Rajasthan Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Rajasthan",
+          "always_available": true
+        },
+        {
+          "name": "Rajasthan Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Rajasthan",
+          "always_available": true
+        }
+      ],
+      "Sikkim": [
+        {
+          "name": "Sikkim Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Sikkim",
+          "always_available": true
+        },
+        {
+          "name": "Sikkim Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Sikkim",
           "always_available": true
         }
       ],
@@ -138,26 +416,521 @@
           "name": "Tamil Nadu Ambulance",
           "number": "108",
           "type": "ambulance",
-          "description": "GVK EMRI ambulance for Tamil Nadu",
+          "description": "Ambulance service for Tamil Nadu",
+          "always_available": true
+        },
+        {
+          "name": "Tamil Nadu Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Tamil Nadu",
+          "always_available": true
+        }
+      ],
+      "Telangana": [
+        {
+          "name": "Telangana Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Telangana",
+          "always_available": true
+        },
+        {
+          "name": "Telangana Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Telangana",
+          "always_available": true
+        }
+      ],
+      "Tripura": [
+        {
+          "name": "Tripura Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Tripura",
+          "always_available": true
+        },
+        {
+          "name": "Tripura Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Tripura",
+          "always_available": true
+        }
+      ],
+      "Uttar Pradesh": [
+        {
+          "name": "Uttar Pradesh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Uttar Pradesh",
+          "always_available": true
+        },
+        {
+          "name": "Uttar Pradesh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Uttar Pradesh",
+          "always_available": true
+        }
+      ],
+      "Uttarakhand": [
+        {
+          "name": "Uttarakhand Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Uttarakhand",
+          "always_available": true
+        },
+        {
+          "name": "Uttarakhand Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Uttarakhand",
+          "always_available": true
+        }
+      ],
+      "West Bengal": [
+        {
+          "name": "West Bengal Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for West Bengal",
+          "always_available": true
+        },
+        {
+          "name": "West Bengal Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for West Bengal",
+          "always_available": true
+        }
+      ],
+      "Andaman and Nicobar Islands": [
+        {
+          "name": "Andaman and Nicobar Islands Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Andaman and Nicobar Islands",
+          "always_available": true
+        },
+        {
+          "name": "Andaman and Nicobar Islands Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Andaman and Nicobar Islands",
+          "always_available": true
+        }
+      ],
+      "Chandigarh": [
+        {
+          "name": "Chandigarh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Chandigarh",
+          "always_available": true
+        },
+        {
+          "name": "Chandigarh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Chandigarh",
+          "always_available": true
+        }
+      ],
+      "Dadra and Nagar Haveli and Daman and Diu": [
+        {
+          "name": "Dadra and Nagar Haveli and Daman and Diu Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Dadra and Nagar Haveli and Daman and Diu",
+          "always_available": true
+        },
+        {
+          "name": "Dadra and Nagar Haveli and Daman and Diu Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Dadra and Nagar Haveli and Daman and Diu",
+          "always_available": true
+        }
+      ],
+      "Lakshadweep": [
+        {
+          "name": "Lakshadweep Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Lakshadweep",
+          "always_available": true
+        },
+        {
+          "name": "Lakshadweep Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Lakshadweep",
           "always_available": true
         }
       ],
       "Delhi": [
         {
           "name": "Delhi Ambulance",
-          "number": "102",
+          "number": "108",
           "type": "ambulance",
-          "description": "Delhi ambulance service",
+          "description": "Ambulance service for Delhi",
           "always_available": true
         },
         {
-          "name": "Delhi Traffic Helpline",
-          "number": "1095",
-          "type": "highway",
-          "description": "Delhi traffic police helpline",
+          "name": "Delhi Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Delhi",
+          "always_available": true
+        }
+      ],
+      "Puducherry": [
+        {
+          "name": "Puducherry Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Puducherry",
+          "always_available": true
+        },
+        {
+          "name": "Puducherry Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Puducherry",
+          "always_available": true
+        }
+      ],
+      "Ladakh": [
+        {
+          "name": "Ladakh Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Ladakh",
+          "always_available": true
+        },
+        {
+          "name": "Ladakh Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Ladakh",
+          "always_available": true
+        }
+      ],
+      "Jammu and Kashmir": [
+        {
+          "name": "Jammu and Kashmir Ambulance",
+          "number": "108",
+          "type": "ambulance",
+          "description": "Ambulance service for Jammu and Kashmir",
+          "always_available": true
+        },
+        {
+          "name": "Jammu and Kashmir Police Control Room",
+          "number": "100",
+          "type": "police",
+          "description": "Police control for Jammu and Kashmir",
           "always_available": true
         }
       ]
     }
+  },
+  "US": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "911",
+        "type": "emergency",
+        "description": "Police, Fire, and Ambulance",
+        "always_available": true
+      },
+      {
+        "name": "Poison Control",
+        "number": "1-800-222-1222",
+        "type": "medical",
+        "description": "Poison Help",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "GB": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "999",
+        "type": "emergency",
+        "description": "Police, Fire, and Ambulance",
+        "always_available": true
+      },
+      {
+        "name": "Non-Emergency Medical",
+        "number": "111",
+        "type": "medical",
+        "description": "NHS non-emergency",
+        "always_available": true
+      },
+      {
+        "name": "Non-Emergency Police",
+        "number": "101",
+        "type": "police",
+        "description": "Police non-emergency",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "AU": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "000",
+        "type": "emergency",
+        "description": "Police, Fire, and Ambulance",
+        "always_available": true
+      },
+      {
+        "name": "SES",
+        "number": "132 500",
+        "type": "disaster",
+        "description": "State Emergency Service",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "CA": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "911",
+        "type": "emergency",
+        "description": "Police, Fire, and Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "EU": {
+    "national": [
+      {
+        "name": "European Emergency Number",
+        "number": "112",
+        "type": "emergency",
+        "description": "Standard emergency number across the EU",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "FR": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "DE": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "IT": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "ES": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "NL": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "SE": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "CH": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
+  },
+  "AT": {
+    "national": [
+      {
+        "name": "Emergency",
+        "number": "112",
+        "type": "emergency",
+        "description": "General Emergency",
+        "always_available": true
+      },
+      {
+        "name": "Police",
+        "number": "112",
+        "type": "police",
+        "description": "Police",
+        "always_available": true
+      },
+      {
+        "name": "Ambulance",
+        "number": "112",
+        "type": "ambulance",
+        "description": "Ambulance",
+        "always_available": true
+      }
+    ],
+    "states": {}
   }
 }
