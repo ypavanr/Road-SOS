@@ -21,6 +21,7 @@ ROADSIDE_SERVICE_URL = os.environ.get("ROADSIDE_SERVICE_URL", "http://localhost:
 CONTACTS_SERVICE_URL = os.environ.get("CONTACTS_SERVICE_URL", "http://localhost:8003")
 CLASSIFIER_SERVICE_URL = os.environ.get("CLASSIFIER_SERVICE_URL", "http://localhost:8004")
 SPEECH_SERVICE_URL = os.environ.get("SPEECH_SERVICE_URL", "http://localhost:8006")
+SOS_SERVICE_URL = os.environ.get("SOS_SERVICE_URL", "http://localhost:8007")
 
 @app.get("/health")
 def health():
@@ -60,6 +61,15 @@ async def nearby_roadside(request: Request):
 @app.get("/contacts")
 async def contacts(request: Request):
     return await proxy_request("GET", f"{CONTACTS_SERVICE_URL}/contacts", request)
+
+@app.get("/sos/config")
+async def sos_config(request: Request):
+    return await proxy_request("GET", f"{SOS_SERVICE_URL}/config", request)
+
+@app.post("/sos/telegram")
+async def sos_telegram(request: Request):
+    json_data = await request.json()
+    return await proxy_request("POST", f"{SOS_SERVICE_URL}/telegram", request, json_data=json_data)
 
 @app.post("/classify")
 async def classify(request: Request):

@@ -1,10 +1,7 @@
 import * as SMS from 'expo-sms';
-import { SMS_NUMBERS, USER_INFO } from '../config/config';
+import { API_GATEWAY_URL } from '../../config';
 
-/**
- * Builds the SMS body — kept under ~320 chars so it fits in 2 GSM messages.
- */
-const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }) => {
+const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) => {
   const time = new Date(timestamp).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: '2-digit', month: 'short', year: 'numeric',
@@ -15,10 +12,10 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }) => {
 
   return (
     `🚨 SOS EMERGENCY ALERT 🚨\n` +
-    `Person: ${USER_INFO.name}\n` +
-    `Phone: ${USER_INFO.phone}\n` +
-    `Medical: ${USER_INFO.medicalNotes}\n` +
-    `Address: ${USER_INFO.address}\n\n` +
+    `Person: ${userInfo.name}\n` +
+    `Phone: ${userInfo.phone}\n` +
+    `Medical: ${userInfo.medicalNotes}\n` +
+    `Address: ${userInfo.address}\n\n` +
     `📍 Location (±${Math.round(accuracy)}m):\n` +
     `${mapsLink}\n\n` +
     `🕐 Time: ${time} IST\n\n` +
@@ -26,30 +23,32 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }) => {
   );
 };
 
-/**
- * Sends an SMS to all numbers in SMS_NUMBERS.
- *
- * expo-sms opens the native SMS composer pre-filled with all recipients and
- * the message body. The user taps Send once — the OS dispatches to all numbers.
- *
- * Returns { result: 'sent' | 'cancelled' | 'unknown' }
- */
 export const sendSOSViaSMS = async (locationData) => {
   const isAvailable = await SMS.isAvailableAsync();
   if (!isAvailable) {
     throw new Error('SMS is not available on this device.');
   }
 
-  const validNumbers = SMS_NUMBERS.filter(
+  let configData;
+  try {
+    const res = await fetch(`${API_GATEWAY_URL}/sos/config`);
+    configData = await res.json();
+  } catch (err) {
+    throw new Error('Failed to fetch SMS config from backend.');
+  }
+
+  const { user_info, sms_numbers } = configData;
+
+  const validNumbers = sms_numbers.filter(
     (n) => n && !n.startsWith('+91XXXXXXXXXX')
   );
 
   if (validNumbers.length === 0) {
-    throw new Error('No SMS numbers configured. Add numbers to src/config/config.js → SMS_NUMBERS.');
+    throw new Error('No SMS numbers configured in backend.');
   }
 
-  const body = buildSMSBody(locationData);
+  const body = buildSMSBody(locationData, user_info);
 
   const { result } = await SMS.sendSMSAsync(validNumbers, body);
-  return { result }; // 'sent' | 'cancelled' | 'unknown'
+  return { result };
 };

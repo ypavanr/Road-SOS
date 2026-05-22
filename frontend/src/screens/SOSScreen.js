@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { getLocationData } from '../services/locationService';
 import { sendSOSViaTelegram, sendLocationPin } from '../services/telegramService';
 import { sendSOSViaSMS } from '../services/smsService';
-import { COUNTDOWN_SECONDS, USER_INFO } from '../config/config';
+import { COUNTDOWN_SECONDS } from '../config/config';
+import { API_GATEWAY_URL } from '../../config';
 
 const { width } = Dimensions.get('window');
 const STATUS = { IDLE: 'IDLE', COUNTDOWN: 'COUNTDOWN', SENDING: 'SENDING', SENT: 'SENT', ERROR: 'ERROR' };
@@ -51,6 +52,14 @@ export default function SOSScreen() {
   const [errorMsg,     setErrorMsg]     = useState('');
   const [log,          setLog]          = useState([]);
   const [channels,     setChannels]     = useState({ telegram: 'idle', sms: 'idle' });
+  const [userInfo,     setUserInfo]     = useState({ name: 'Loading...', phone: '...' });
+
+  useEffect(() => {
+    fetch(`${API_GATEWAY_URL}/sos/config`)
+      .then(r => r.json())
+      .then(d => setUserInfo(d.user_info))
+      .catch(() => setUserInfo({ name: 'Unknown User', phone: 'Unknown Phone' }));
+  }, []);
 
   const pulseAnim  = useRef(new Animated.Value(1)).current;
   const glowAnim   = useRef(new Animated.Value(0)).current;
@@ -229,8 +238,8 @@ export default function SOSScreen() {
       <View style={s.userCard}>
         <Ionicons name="person-circle-outline" size={22} color="#EF4444" />
         <View style={{ marginLeft: 10, flex: 1 }}>
-          <Text style={s.userName}>{USER_INFO.name}</Text>
-          <Text style={s.userSub}>{USER_INFO.phone}</Text>
+          <Text style={s.userName}>{userInfo.name}</Text>
+          <Text style={s.userSub}>{userInfo.phone}</Text>
         </View>
         {(isSent || isSending || isError) && (
           <View style={s.channelRow}>

@@ -1,13 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet, Text, View, ActivityIndicator, ScrollView,
-  TouchableOpacity, Linking, Alert, SectionList, TextInput,
+  TouchableOpacity, Linking, Alert, SectionList, TextInput, Platform
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import { API_GATEWAY_URL } from './config';
 import { startRecording, stopRecording, uploadAudio } from './src/services/audioService';
 
+import SOSScreen from './src/screens/SOSScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+
+// Duplicate imports removed
 // ─── Facility metadata ───────────────────────────────────────────────────────
 
 const FACILITY_META = {
@@ -139,9 +144,9 @@ function SectionHeader({ title, count, cached }) {
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// ─── Main App Wrapper ─────────────────────────────────────────────────────────────
 
-export default function App() {
+function DashboardScreen() {
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -159,7 +164,6 @@ export default function App() {
   const [meta, setMeta] = useState({});
   const [fetchedOnce, setFetchedOnce] = useState(false);
 
-  // Classification State
   const [textInput, setTextInput] = useState('');
   const [classification, setClassification] = useState(null);
   const [classifying, setClassifying] = useState(false);
@@ -173,10 +177,6 @@ export default function App() {
         setLocationLoading(false);
         return;
       }
-      // Request microphone permissions
-      // Note: React Native Audio Recorder Player might need separate permission handlers, 
-      // but in Expo, permissions are often requested via the module or Expo modules. 
-      // For bare React Native we would use PermissionsAndroid. 
       
       subscriber = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
@@ -247,7 +247,6 @@ export default function App() {
       if (response.ok) {
         const data = await response.json();
         setClassification(data);
-        // Always fetch nearby + contacts when classification runs
         if (data.is_emergency) {
           findNearby(false);
         }
@@ -263,7 +262,6 @@ export default function App() {
 
   const handleRecordSOS = async () => {
     if (isRecording) {
-      // Stop recording
       setIsRecording(false);
       const filePath = await stopRecording();
       if (filePath) {
@@ -285,7 +283,6 @@ export default function App() {
         setRecordingError('Failed to capture audio.');
       }
     } else {
-      // Start recording
       setRecordingError(null);
       setTranscribedText(null);
       const started = await startRecording();
@@ -301,9 +298,8 @@ export default function App() {
 
   return (
     <ScrollView style={styles.bg} contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Road SOS</Text>
+      <Text style={styles.title}>Road SOS Dashboard</Text>
 
-      {/* Location strip */}
       <View style={styles.locationStrip}>
         {locationLoading ? (
           <ActivityIndicator color="#2563eb" />
@@ -317,7 +313,6 @@ export default function App() {
         )}
       </View>
 
-      {/* Emergency contacts strip — filter by classification when available */}
       {emergencyContacts.length > 0 && (
         <View style={styles.contactsSection}>
           <Text style={styles.contactsSectionTitle}>Emergency Numbers</Text>
@@ -325,17 +320,15 @@ export default function App() {
             {emergencyContacts
               .filter(c => {
                 if (!classification) return true;
-                // Map classifier broad categories to contact types
                 const typeMap = {
                   medical: ['emergency', 'ambulance', 'medical'],
                   police: ['emergency', 'police'],
                   roadside: ['emergency', 'highway'],
                 };
-                const relevantTypes = new Set(['emergency']); // always show general emergency
+                const relevantTypes = new Set(['emergency']);
                 classification.broad_categories.forEach(bc => {
                   (typeMap[bc] || []).forEach(t => relevantTypes.add(t));
                 });
-                // If fire_station is in specific_facilities, also show fire contacts
                 if (classification.specific_facilities.includes('fire_station')) {
                   relevantTypes.add('fire');
                 }
@@ -351,7 +344,6 @@ export default function App() {
         <Text style={styles.error}>Emergency numbers: {errors.contacts}</Text>
       ) : null}
 
-      {/* Find Nearby Help button */}
       <TouchableOpacity
         style={[styles.sos, (!location || loading) && styles.sosDisabled]}
         onPress={() => findNearby(false)}
@@ -365,7 +357,6 @@ export default function App() {
         )}
       </TouchableOpacity>
 
-      {/* Record SOS Audio Button */}
       <TouchableOpacity
         style={[
           styles.sos, 
@@ -381,7 +372,6 @@ export default function App() {
         </Text>
       </TouchableOpacity>
 
-      {/* Transcription Result */}
       {transcribedText ? (
         <View style={styles.transcriptionBox}>
           <Text style={styles.transcriptionText}>{transcribedText}</Text>
@@ -392,7 +382,6 @@ export default function App() {
         <Text style={styles.error}>{recordingError}</Text>
       ) : null}
 
-      {/* Manual Text SOS */}
       <View style={styles.textInputBox}>
         <TextInput
           style={styles.textInput}
@@ -413,7 +402,6 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Classification Details */}
       {classification && (
         <View style={styles.classificationBox}>
           <View style={styles.classHeaderRow}>
@@ -431,7 +419,6 @@ export default function App() {
             Emergency: {classification.is_emergency ? '✅ Yes' : '❌ No'}
           </Text>
 
-          {/* Broad categories */}
           <View style={styles.broadRow}>
             {classification.broad_categories.map(bc => (
               <View key={bc} style={styles.broadBadge}>
@@ -442,13 +429,11 @@ export default function App() {
             ))}
           </View>
 
-          {/* Explanation */}
           <View style={styles.explanationBox}>
             <Text style={styles.explanationLabel}>Why this classification:</Text>
             <Text style={styles.explanationText}>{classification.explanation}</Text>
           </View>
 
-          {/* Specific facilities needed */}
           <Text style={styles.facilitiesNeededLabel}>Specific assistance needed:</Text>
           <View style={styles.badgeRow}>
             {classification.specific_facilities.map(fac => {
@@ -456,17 +441,15 @@ export default function App() {
               return (
                 <View key={fac} style={[styles.facBadge, { backgroundColor: m.color + '18' }]}>
                   <Text style={[styles.facBadgeText, { color: m.color }]}>{m.emoji} {m.label}</Text>
-                </View>
+                 </View>
               );
             })}
           </View>
         </View>
       )}
 
-      {/* Results */}
       {fetchedOnce && (
         <>
-          {/* Medical & Safety */}
           {(!classification || classification.broad_categories.includes('medical') || classification.broad_categories.includes('police')) && (
             <>
               <SectionHeader
@@ -486,7 +469,6 @@ export default function App() {
             </>
           )}
 
-          {/* Roadside Assistance */}
           {(!classification || classification.broad_categories.includes('roadside')) && (
             <>
               <SectionHeader
@@ -513,9 +495,53 @@ export default function App() {
   );
 }
 
+export default function App() {
+  const [tab, setTab] = useState('Dashboard');
+
+  return (
+    <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f1f5f9" />
+
+      <View style={styles.screen}>
+        {tab === 'Dashboard' && <DashboardScreen />}
+        {tab === 'SOS' && <SOSScreen />}
+        {tab === 'Settings' && <SettingsScreen />}
+      </View>
+
+      <View style={styles.tabBar}>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('Dashboard')}>
+          <Ionicons name="home" size={22} color={tab === 'Dashboard' ? '#2563eb' : '#475569'} />
+          <Text style={[styles.tabLabel, tab === 'Dashboard' && styles.tabActive]}>Dashboard</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('SOS')}>
+          <Ionicons name="warning" size={22} color={tab === 'SOS' ? '#EF4444' : '#475569'} />
+          <Text style={[styles.tabLabel, tab === 'SOS' && { color: '#EF4444' }]}>SOS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => setTab('Settings')}>
+          <Ionicons name="settings-outline" size={22} color={tab === 'Settings' ? '#2563eb' : '#475569'} />
+          <Text style={[styles.tabLabel, tab === 'Settings' && styles.tabActive]}>Settings</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  root:     { flex: 1, backgroundColor: '#f1f5f9' },
+  screen:   { flex: 1 },
+  tabBar:   {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderTopColor: '#e2e8f0', borderTopWidth: 1,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingTop: 8, height: Platform.OS === 'ios' ? 80 : 60,
+  },
+  tab:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  tabLabel: { color: '#475569', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  tabActive:{ color: '#2563eb' },
+  
   bg: { flex: 1, backgroundColor: '#f1f5f9' },
   container: { padding: 20, paddingTop: 60, paddingBottom: 40 },
 
@@ -530,7 +556,6 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: 13, color: '#475569', fontFamily: 'monospace' },
 
-  // Emergency contacts
   contactsSection: { marginBottom: 16 },
   contactsSectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#475569',
@@ -546,7 +571,6 @@ const styles = StyleSheet.create({
   chipNumber: { fontSize: 15, fontWeight: '800' },
   chipName: { fontSize: 10, color: '#64748b', marginTop: 2, textAlign: 'center', maxWidth: 72 },
 
-  // SOS button
   sos: {
     backgroundColor: '#dc2626', borderRadius: 14, paddingVertical: 18,
     alignItems: 'center', marginBottom: 16,
@@ -606,7 +630,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, fontWeight: '600',
   },
 
-  // Facility card
   card: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14,
     borderLeftWidth: 4,
