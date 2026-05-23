@@ -19,7 +19,7 @@ const SERVICES = [
   { id: 'puncture', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
 ];
 
-export default function HomeScreen({ onNavigateToMap, setFacilities }) {
+export default function HomeScreen({ onNavigateToMap, setFacilities, userData }) {
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [translation, setTranslation] = useState('');
@@ -85,13 +85,16 @@ export default function HomeScreen({ onNavigateToMap, setFacilities }) {
         const data = await response.json();
         if (data.is_emergency) {
           findNearby(lat, lon, data);
-          if (location && location.coords) {
-            sendSOSViaSMS({
-              latitude: lat,
-              longitude: lon,
-              accuracy: location.coords.accuracy,
-              timestamp: location.coords.timestamp
-            }).catch(err => console.error("Auto SMS failed:", err));
+          
+          if (data.user_role === 'victim') {
+            if (location && location.coords && userData) {
+              sendSOSViaSMS({
+                latitude: lat,
+                longitude: lon,
+                accuracy: location.coords.accuracy,
+                timestamp: location.coords.timestamp
+              }, userData).catch(err => console.error("Auto SMS failed:", err));
+            }
           }
         }
       }

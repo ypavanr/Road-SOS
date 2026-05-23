@@ -12,10 +12,8 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) =>
 
   return (
     `🚨 SOS EMERGENCY ALERT 🚨\n` +
-    `Person: ${userInfo.name}\n` +
-    `Phone: ${userInfo.phone}\n` +
-    `Medical: ${userInfo.medicalNotes}\n` +
-    `Address: ${userInfo.address}\n\n` +
+    `Person: ${userInfo.name || 'Unknown'}\n` +
+    `Phone: ${userInfo.phone || 'Unknown'}\n\n` +
     `📍 Location (±${Math.round(accuracy)}m):\n` +
     `${mapsLink}\n\n` +
     `🕐 Time: ${time} IST\n\n` +
@@ -23,31 +21,25 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) =>
   );
 };
 
-export const sendSOSViaSMS = async (locationData) => {
+export const sendSOSViaSMS = async (locationData, userData) => {
   const isAvailable = await SMS.isAvailableAsync();
   if (!isAvailable) {
     throw new Error('SMS is not available on this device.');
   }
 
-  let configData;
-  try {
-    const res = await fetch(`${API_GATEWAY_URL}/sos/config`);
-    configData = await res.json();
-  } catch (err) {
-    throw new Error('Failed to fetch SMS config from backend.');
+  if (!userData || !userData.emergencyContacts || userData.emergencyContacts.length === 0) {
+    throw new Error('No emergency contacts found in user registration data.');
   }
 
-  const { user_info, sms_numbers } = configData;
-
-  const validNumbers = sms_numbers.filter(
-    (n) => n && !n.startsWith('+91XXXXXXXXXX')
-  );
+  const validNumbers = userData.emergencyContacts
+    .map(c => c.phone)
+    .filter(n => n && n.trim() !== '');
 
   if (validNumbers.length === 0) {
-    throw new Error('No SMS numbers configured in backend.');
+    throw new Error('No valid SMS numbers provided in registration data.');
   }
 
-  const body = buildSMSBody(locationData, user_info);
+  const body = buildSMSBody(locationData, userData);
 
   const { result } = await SMS.sendSMSAsync(validNumbers, body);
   return { result };

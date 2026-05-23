@@ -57,6 +57,7 @@ export default function App() {
         <HomeScreen 
           onNavigateToMap={() => setCurrentScreen('Map')} 
           setFacilities={setFacilities}
+          userData={userData}
         />
       )}
       {currentScreen === 'Map' && (
