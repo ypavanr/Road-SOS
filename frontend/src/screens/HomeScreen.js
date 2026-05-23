@@ -1,12 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Dimensions, TextInput } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { API_GATEWAY_URL } from '../../config';
 import { startRecording, stopRecording, uploadAudio } from '../services/audioService';
 import { sendSOSViaSMS } from '../services/smsService';
+import {
+  useEmergency,
+  getPrimaryFacilityType,
+  facilityTypeToFilter,
+} from '../context/EmergencyContext';
 
 const { width } = Dimensions.get('window');
+
+const HIGH_CONFIDENCE_THRESHOLD = 0.75;
 
 const SERVICES = [
   { id: 'ambulance', name: 'Ambulance', icon: 'medical', color: '#ef4444' },
@@ -14,67 +31,81 @@ const SERVICES = [
   { id: 'fire', name: 'Fire Station', icon: 'flame', color: '#f97316' },
   { id: 'hospital', name: 'Hospitals', icon: 'business', color: '#ec4899' },
   { id: 'trauma', name: 'Trauma Center', icon: 'heart-half', color: '#8b5cf6' },
-  { id: 'gas', name: 'Gas Station', icon: 'water', color: '#eab308' },
+  { id: 'fuel', name: 'Gas Station', icon: 'water', color: '#eab308' },
   { id: 'towing', name: 'Towing Service', icon: 'car', color: '#6366f1' },
-  { id: 'puncture', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
+  { id: 'tyre', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
 ];
 
-export default function HomeScreen({ onNavigateToMap, setFacilities, userData }) {
+const SERVICE_LABEL = {
+  hospital: 'Hospital',
+  trauma_center: 'Trauma Center',
+  ambulance: 'Ambulance',
+  clinic: 'Clinic',
+  police: 'Police',
+  fire_station: 'Fire Station',
+  towing: 'Towing Service',
+  tyre_shop: 'Puncture Shop',
+  car_repair: 'Car Repair',
+  fuel_station: 'Gas Station',
+  roadside_assistance: 'Roadside Assistance',
+};
+
+const SERVICE_ICON = {
+  hospital: 'business',
+  trauma_center: 'heart-half',
+  ambulance: 'medical',
+  clinic: 'medkit',
+  police: 'shield-checkmark',
+  fire_station: 'flame',
+  towing: 'car',
+  tyre_shop: 'hammer',
+  car_repair: 'construct',
+  fuel_station: 'water',
+  roadside_assistance: 'construct',
+};
+
+const LOADING_MESSAGES = [
+  'Analyzing emergency...',
+  'Finding nearest services...',
+  'Calculating fastest route...',
+  'Fetching emergency services...',
+];
+
+export default function HomeScreen({ onNavigateToMap, userData }) {
+  const {
+    setClassification,
+    setFacilities,
+    setSelectedService,
+    setIsEmergencyMode,
+    setLoadingMessage,
+    clearEmergency,
+  } = useEmergency();
+
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [translation, setTranslation] = useState('');
-  
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
-  // Text input state
+  // Text input
   const [isTextInputMode, setIsTextInputMode] = useState(false);
   const [manualText, setManualText] = useState('');
 
-  const findNearby = async (lat, lon, classification) => {
-    try {
-      const bodyObj = { lat, lon, radius_m: 10000 };
-      if (classification?.patient_gender) {
-        bodyObj.patient_gender = classification.patient_gender;
-      }
-      const body = JSON.stringify(bodyObj);
-      const headers = { 'Content-Type': 'application/json' };
-
-      const [medicalRes, roadsideRes] = await Promise.allSettled([
-        fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
-        fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body })
-      ]);
-
-      let allFacilities = [];
-      if (medicalRes.status === 'fulfilled' && medicalRes.value.ok) {
-        const d = await medicalRes.value.json();
-        allFacilities = allFacilities.concat(d.facilities || []);
-      }
-      if (roadsideRes.status === 'fulfilled' && roadsideRes.value.ok) {
-        const d = await roadsideRes.value.json();
-        allFacilities = allFacilities.concat(d.facilities || []);
-      }
-      
-      setFacilities(allFacilities);
-    } catch (e) {
-      console.error("Failed to fetch nearby", e);
-    }
-  };
+  // Low-confidence confirmation state
+  const [pendingClassification, setPendingClassification] = useState(null);
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationLoading(false);
         return;
       }
-
-      let loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
       setLocationLoading(false);
-      
-      // Initial fetch without AI classification filters
-      if (loc && loc.coords) {
+      if (loc?.coords) {
         findNearby(loc.coords.latitude, loc.coords.longitude);
       }
     })();
@@ -82,44 +113,111 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
 
   const { latitude, longitude } = location?.coords || {};
 
-
-  const handleClassify = async (textToClassify, lat, lon) => {
-    if (!textToClassify) return;
-    try {
-      const response = await fetch(`${API_GATEWAY_URL}/classify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToClassify }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.is_emergency) {
-          findNearby(lat, lon, data);
-          
-          if (data.user_role === 'victim') {
-            if (location && location.coords && userData) {
-              sendSOSViaSMS({
-                latitude: lat,
-                longitude: lon,
-                accuracy: location.coords.accuracy,
-                timestamp: location.coords.timestamp
-              }, userData).catch(err => console.error("Auto SMS failed:", err));
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Classification failed:", e);
-    }
+  const setContextLoadingMsg = (msg) => {
+    setLoadingMsg(msg);
+    setLoadingMessage(msg);
   };
+
+  // ── Fetch all nearby facilities and store in context ──────────
+  const findNearby = useCallback(async (lat, lon, classification = null) => {
+    try {
+      setContextLoadingMsg('Fetching emergency services...');
+      const bodyObj = { lat, lon, radius_m: 10000 };
+      if (classification?.patient_gender) {
+        bodyObj.patient_gender = classification.patient_gender;
+      }
+      const body = JSON.stringify(bodyObj);
+      const headers = { 'Content-Type': 'application/json' };
+
+      const [medRes, roadRes] = await Promise.allSettled([
+        fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
+        fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
+      ]);
+
+      let allFacilities = [];
+      if (medRes.status === 'fulfilled' && medRes.value.ok) {
+        const d = await medRes.value.json();
+        allFacilities = allFacilities.concat(d.facilities || []);
+      }
+      if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
+        const d = await roadRes.value.json();
+        allFacilities = allFacilities.concat(d.facilities || []);
+      }
+      setFacilities(allFacilities);
+      setContextLoadingMsg(null);
+      return allFacilities;
+    } catch (e) {
+      console.error('Failed to fetch nearby', e);
+      setContextLoadingMsg(null);
+      return [];
+    }
+  }, [setFacilities, setLoadingMessage]);
+
+  // ── Act on a confirmed (or high-confidence) classification ────
+  const applyClassification = useCallback(
+    async (data, lat, lon) => {
+      setClassification(data);
+
+      const primaryType = getPrimaryFacilityType(data.specific_facilities || []);
+      const filterId = facilityTypeToFilter(primaryType);
+      setSelectedService(filterId);
+      setIsEmergencyMode(true);
+
+      setContextLoadingMsg('Finding nearest trauma center...');
+      const facilities = await findNearby(lat, lon, data);
+
+      if (data.user_role === 'victim' && location?.coords && userData) {
+        sendSOSViaSMS(
+          { latitude: lat, longitude: lon, accuracy: location.coords.accuracy },
+          userData,
+        ).catch((err) => console.error('Auto SMS failed:', err));
+      }
+
+      onNavigateToMap();
+    },
+    [setClassification, setSelectedService, setIsEmergencyMode, findNearby, location, userData, onNavigateToMap],
+  );
+
+  // ── Classify text and decide what to do ──────────────────────
+  const handleClassify = useCallback(
+    async (textToClassify, lat, lon) => {
+      if (!textToClassify) return;
+      try {
+        setContextLoadingMsg('Analyzing emergency...');
+        const response = await fetch(`${API_GATEWAY_URL}/classify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: textToClassify }),
+        });
+        if (!response.ok) {
+          setContextLoadingMsg(null);
+          return;
+        }
+        const data = await response.json();
+        setContextLoadingMsg(null);
+
+        if (!data.is_emergency) return;
+
+        if ((data.confidence_score || 0) >= HIGH_CONFIDENCE_THRESHOLD) {
+          // High confidence → auto-route
+          await applyClassification(data, lat, lon);
+        } else {
+          // Low confidence → ask user to confirm
+          setPendingClassification({ data, lat, lon });
+        }
+      } catch (e) {
+        console.error('Classification failed:', e);
+        setContextLoadingMsg(null);
+      }
+    },
+    [applyClassification],
+  );
 
   const handleManualSubmit = () => {
     if (!manualText.trim()) return;
     setTranslation(manualText);
-    setIsTextInputMode(false); // Switch back to read-only view
-    if (latitude && longitude) {
-      handleClassify(manualText, latitude, longitude);
-    }
+    setIsTextInputMode(false);
+    if (latitude && longitude) handleClassify(manualText, latitude, longitude);
     setManualText('');
   };
 
@@ -135,9 +233,7 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
         setLoading(false);
         if (result.success) {
           setTranslation(result.text);
-          if (latitude && longitude) {
-            handleClassify(result.text, latitude, longitude);
-          }
+          if (latitude && longitude) handleClassify(result.text, latitude, longitude);
         } else {
           setTranslation('Transcription failed.');
         }
@@ -145,49 +241,129 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
     } else {
       setTranslation('Recording...');
       const started = await startRecording();
-      if (started) {
-        setIsRecording(true);
-      } else {
-        setTranslation('Microphone permission denied.');
-      }
+      if (started) setIsRecording(true);
+      else setTranslation('Microphone permission denied.');
     }
   };
 
+  // ── Manual service card tap → navigate directly ───────────────
+  const handleServiceTap = async (serviceId) => {
+    clearEmergency();
+    setSelectedService(serviceId);
+    if (latitude && longitude) {
+      await findNearby(latitude, longitude);
+    }
+    onNavigateToMap();
+  };
+
+  // ── Low-confidence confirmation handlers ──────────────────────
+  const confirmServices = async (specificFacilities) => {
+    if (!pendingClassification) return;
+    const { data, lat, lon } = pendingClassification;
+    setPendingClassification(null);
+    await applyClassification(
+      { ...data, specific_facilities: specificFacilities },
+      lat,
+      lon,
+    );
+  };
+
+  const dismissConfirmation = () => setPendingClassification(null);
+
+  // ── Render ────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top Coordinates Strip */}
+        {/* Coordinates Strip */}
         <View style={styles.coordStrip}>
           <Ionicons name="location" size={16} color="#475569" style={{ marginRight: 6 }} />
           {locationLoading ? (
             <ActivityIndicator size="small" color="#475569" />
           ) : (
             <Text style={styles.coordText}>
-              Lat: {latitude ? latitude.toFixed(5) : 'Unknown'}, Lng: {longitude ? longitude.toFixed(5) : 'Unknown'}
+              Lat: {latitude ? latitude.toFixed(5) : 'Unknown'}, Lng:{' '}
+              {longitude ? longitude.toFixed(5) : 'Unknown'}
             </Text>
           )}
         </View>
 
-        {/* Action Buttons */}
+        {/* Loading Banner */}
+        {(loading || loadingMsg) && (
+          <View style={styles.loadingBanner}>
+            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.loadingBannerText}>{loadingMsg || 'Processing...'}</Text>
+          </View>
+        )}
+
+        {/* Low-Confidence Confirmation Card */}
+        {pendingClassification && (
+          <View style={styles.confirmCard}>
+            <View style={styles.confirmHeader}>
+              <Ionicons name="alert-circle" size={22} color="#f97316" />
+              <Text style={styles.confirmTitle}>Possible Emergency Services</Text>
+            </View>
+            <Text style={styles.confirmSubtitle}>
+              AI confidence is low. Please confirm which services you need:
+            </Text>
+            {(pendingClassification.data.specific_facilities || []).map((svc) => (
+              <TouchableOpacity
+                key={svc}
+                style={styles.confirmServiceBtn}
+                onPress={() => confirmServices([svc])}
+              >
+                <Ionicons
+                  name={SERVICE_ICON[svc] || 'help-circle'}
+                  size={18}
+                  color="#ef4444"
+                  style={{ marginRight: 10 }}
+                />
+                <Text style={styles.confirmServiceText}>{SERVICE_LABEL[svc] || svc}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+              </TouchableOpacity>
+            ))}
+            {(pendingClassification.data.specific_facilities || []).length > 1 && (
+              <TouchableOpacity
+                style={[styles.confirmServiceBtn, { backgroundColor: '#fef2f2' }]}
+                onPress={() => confirmServices(pendingClassification.data.specific_facilities)}
+              >
+                <Ionicons name="git-merge" size={18} color="#ef4444" style={{ marginRight: 10 }} />
+                <Text style={[styles.confirmServiceText, { color: '#ef4444', fontWeight: '700' }]}>
+                  All of the above
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={dismissConfirmation} style={styles.confirmDismiss}>
+              <Text style={styles.confirmDismissText}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Voice / Text Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={[styles.actionBtn, styles.voiceBtn, isRecording && { backgroundColor: '#7f1d1d' }]} 
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.voiceBtn, isRecording && { backgroundColor: '#7f1d1d' }]}
             onPress={handleRecordSOS}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name={isRecording ? "square" : "mic"} size={24} color="#fff" />}
-            <Text style={[styles.actionText, { color: '#fff' }]}>{isRecording ? "STOP" : "VOICE"}</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Ionicons name={isRecording ? 'square' : 'mic'} size={24} color="#fff" />
+            )}
+            <Text style={[styles.actionText, { color: '#fff' }]}>
+              {isRecording ? 'STOP' : 'VOICE'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionBtn, styles.textBtn, isTextInputMode && { backgroundColor: '#f1f5f9' }]} 
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.textBtn, isTextInputMode && { backgroundColor: '#f1f5f9' }]}
             onPress={() => setIsTextInputMode(!isTextInputMode)}
           >
             <Ionicons name="chatbubble" size={24} color="#0f172a" />
-            <Text style={styles.actionText}>{isTextInputMode ? "CANCEL" : "TEXT"}</Text>
+            <Text style={styles.actionText}>{isTextInputMode ? 'CANCEL' : 'TEXT'}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Translation Box / Text Input */}
+        {/* Translation / Text Input Box */}
         <View style={styles.translationBox}>
           {isTextInputMode ? (
             <View style={{ width: '100%' }}>
@@ -207,16 +383,20 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
           ) : (
             <>
               <Text style={styles.translationLabel}>Translation of voice</Text>
-              <Text style={styles.translationValue}>{translation || '...' }</Text>
+              <Text style={styles.translationValue}>{translation || '...'}</Text>
             </>
           )}
         </View>
 
-        {/* Services Grid */}
+        {/* Emergency Services Grid */}
         <Text style={styles.sectionTitle}>Emergency Services</Text>
         <View style={styles.servicesGrid}>
           {SERVICES.map((srv) => (
-            <TouchableOpacity key={srv.id} style={styles.serviceCard}>
+            <TouchableOpacity
+              key={srv.id}
+              style={styles.serviceCard}
+              onPress={() => handleServiceTap(srv.id)}
+            >
               <View style={[styles.iconWrap, { backgroundColor: srv.color + '15' }]}>
                 <Ionicons name={srv.icon} size={28} color={srv.color} />
               </View>
@@ -225,7 +405,7 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
           ))}
         </View>
 
-        {/* Map Button at bottom of scroll */}
+        {/* Map Button */}
         <View style={styles.footerContainer}>
           <TouchableOpacity style={styles.mapBtn} onPress={onNavigateToMap}>
             <Text style={styles.mapBtnText}>Go to Map View</Text>
@@ -240,71 +420,78 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { padding: 20, paddingBottom: 40 },
+
   coordStrip: {
     backgroundColor: '#e2e8f0', borderRadius: 12, padding: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 24,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  coordText: { fontSize: 16, fontWeight: '600', color: '#475569', letterSpacing: 0.5 },
-  actionRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  coordText: { fontSize: 14, fontWeight: '600', color: '#475569', letterSpacing: 0.5 },
+
+  loadingBanner: {
+    backgroundColor: '#ef4444', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 16,
+  },
+  loadingBannerText: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 },
+
+  confirmCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16,
+    borderWidth: 2, borderColor: '#f97316',
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+  },
+  confirmHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
+  confirmTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  confirmSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 12 },
+  confirmServiceBtn: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc',
+    borderRadius: 10, padding: 12, marginBottom: 8,
+  },
+  confirmServiceText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1e293b' },
+  confirmDismiss: { alignItems: 'center', marginTop: 4 },
+  confirmDismissText: { color: '#94a3b8', fontSize: 13 },
+
+  actionRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   actionBtn: {
     flex: 1, backgroundColor: '#cbd5e1', borderRadius: 16,
     paddingVertical: 24, alignItems: 'center', justifyContent: 'center',
   },
-  voiceBtn: {
-    backgroundColor: '#ef4444', // Red color for voice
-  },
-  textBtn: {
-    backgroundColor: '#fff', 
-    borderWidth: 2, 
-    borderColor: '#ef4444', // Red border for text box
-  },
+  voiceBtn: { backgroundColor: '#ef4444' },
+  textBtn: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#ef4444' },
   actionText: { marginTop: 8, fontSize: 16, fontWeight: '700', color: '#0f172a' },
+
   translationBox: {
     backgroundColor: '#fff', borderRadius: 16, padding: 24,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 32, minHeight: 120,
-    borderWidth: 2, borderColor: '#ef4444', // Also red border here just in case this is what they meant
+    alignItems: 'center', justifyContent: 'center', marginBottom: 24, minHeight: 100,
+    borderWidth: 2, borderColor: '#ef4444',
   },
-  translationLabel: { fontSize: 16, color: '#475569', marginBottom: 8 },
-  translationValue: { fontSize: 20, fontWeight: '600', color: '#0f172a', textAlign: 'center' },
+  translationLabel: { fontSize: 14, color: '#475569', marginBottom: 6 },
+  translationValue: { fontSize: 18, fontWeight: '600', color: '#0f172a', textAlign: 'center' },
   textInput: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#0f172a',
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-    width: '100%',
+    backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12,
+    padding: 14, fontSize: 15, color: '#0f172a', minHeight: 80,
+    textAlignVertical: 'top', marginBottom: 12, width: '100%',
   },
-  submitBtn: {
-    backgroundColor: '#0f172a',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a', marginBottom: 16 },
-  servicesGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
-  },
+  submitBtn: { backgroundColor: '#0f172a', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a', marginBottom: 14 },
+  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   serviceCard: {
-    width: '31%', backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    width: '31%', backgroundColor: '#fff', borderRadius: 16, padding: 14,
     alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 12,
   },
-  iconWrap: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  serviceName: { fontSize: 12, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
-  footerContainer: {
-    marginTop: 24,
+  iconWrap: {
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
+  serviceName: { fontSize: 11, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
+
+  footerContainer: { marginTop: 20 },
   mapBtn: {
     backgroundColor: '#ef4444', borderRadius: 100, paddingVertical: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
   mapBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 });

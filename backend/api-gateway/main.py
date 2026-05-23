@@ -20,6 +20,7 @@ HOSPITAL_SERVICE_URL = os.environ.get("HOSPITAL_SERVICE_URL", "http://localhost:
 ROADSIDE_SERVICE_URL = os.environ.get("ROADSIDE_SERVICE_URL", "http://localhost:8002")
 CONTACTS_SERVICE_URL = os.environ.get("CONTACTS_SERVICE_URL", "http://localhost:8003")
 CLASSIFIER_SERVICE_URL = os.environ.get("CLASSIFIER_SERVICE_URL", "http://localhost:8004")
+ROUTE_SERVICE_URL = os.environ.get("ROUTE_SERVICE_URL", "http://localhost:8005")
 SPEECH_SERVICE_URL = os.environ.get("SPEECH_SERVICE_URL", "http://localhost:8006")
 SOS_SERVICE_URL = os.environ.get("SOS_SERVICE_URL", "http://localhost:8007")
 
@@ -70,6 +71,11 @@ async def sos_config(request: Request):
 async def sos_telegram(request: Request):
     json_data = await request.json()
     return await proxy_request("POST", f"{SOS_SERVICE_URL}/telegram", request, json_data=json_data)
+
+@app.post("/route")
+async def route(request: Request):
+    json_data = await request.json()
+    return await proxy_request("POST", f"{ROUTE_SERVICE_URL}/route", request, json_data=json_data)
 
 @app.post("/classify")
 async def classify(request: Request):

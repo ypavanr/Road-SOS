@@ -103,6 +103,13 @@ start_service \
   "$ROOT/backend/services/classifier-service/venv" \
   "uvicorn app.main:app --host 0.0.0.0 --port 8004"
 
+# ── 4b. Route Service (port 8005) ─────────────────────────────
+start_service \
+  "route-service" 8005 \
+  "$ROOT/backend/services/route-service" \
+  "$ROOT/backend/services/route-service/.venv" \
+  "uvicorn main:app --host 0.0.0.0 --port 8005"
+
 # ── 5. Speech Service (port 8006) ────────────────────────────
 # Note: loads Whisper model on startup — needs extra time
 info "Starting speech-service on port 8006 (loading Whisper model, please wait ~5s)..."
@@ -139,6 +146,7 @@ services=(
   "roadside-service|8002"
   "emergency-contacts-service|8003"
   "classifier-service|8004"
+  "route-service|8005"
   "speech-service|8006"
   "sos-service|8007"
 )
@@ -170,6 +178,11 @@ echo "    -d '{\"lat\": 12.9716, \"lon\": 77.5946, \"radius_m\": 5000}'"
 echo ""
 echo "Test emergency contacts:"
 echo "  curl 'http://localhost:8000/contacts?lat=12.9716&lon=77.5946'"
+echo ""
+echo "Test route service (Bengaluru coords):"
+echo "  curl -X POST http://localhost:8000/route \\"
+echo "    -H 'Content-Type: application/json' \\"
+echo "    -d '{\"source_lat\": 12.97, \"source_lon\": 77.59, \"dest_lat\": 12.98, \"dest_lon\": 77.60}'"
 echo ""
 echo -e "${GREEN}All services launched! Open Expo to test the mobile app.${NC}"
 echo ""
