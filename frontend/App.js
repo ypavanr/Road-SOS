@@ -186,14 +186,19 @@ function DashboardScreen() {
     return () => subscriber?.remove();
   }, []);
 
-  const findNearby = useCallback(async (forceRefresh = false) => {
+  const findNearby = useCallback(async (forceRefresh = false, overrideClassification = null) => {
     if (!location) return;
     const { latitude: lat, longitude: lon } = location.coords;
 
     setLoading(true);
     setErrors({});
 
-    const body = JSON.stringify({ lat, lon, radius_m: 10000, force_refresh: forceRefresh });
+    const currentClass = overrideClassification || classification;
+    const bodyObj = { lat, lon, radius_m: 10000, force_refresh: forceRefresh };
+    if (currentClass && currentClass.patient_gender) {
+      bodyObj.patient_gender = currentClass.patient_gender;
+    }
+    const body = JSON.stringify(bodyObj);
     const headers = { 'Content-Type': 'application/json' };
 
     const [medicalRes, roadsideRes, contactsRes] = await Promise.allSettled([
@@ -232,7 +237,7 @@ function DashboardScreen() {
     setMeta(newMeta);
     setLoading(false);
     setFetchedOnce(true);
-  }, [location]);
+  }, [location, classification]);
 
   const handleClassify = async (textToClassify) => {
     if (!textToClassify || !textToClassify.trim()) return;
@@ -248,7 +253,7 @@ function DashboardScreen() {
         const data = await response.json();
         setClassification(data);
         if (data.is_emergency) {
-          findNearby(false);
+          findNearby(false, data);
         }
       } else {
         setErrors(prev => ({ ...prev, classification: 'Classification failed.' }));

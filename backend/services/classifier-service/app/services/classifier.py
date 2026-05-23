@@ -14,7 +14,6 @@ if GROQ_API_KEY:
 else:
     client = None
 
-# System prompt forcing structured JSON
 SYSTEM_PROMPT = """You are an emergency triage classification system.
 You will receive a transcription of an emergency voice call or user text.
 Analyze the prompt and accurately determine:
@@ -22,6 +21,8 @@ Analyze the prompt and accurately determine:
 2. What broad categories are involved? (medical, police, roadside)
 3. What specific facilities are needed? Choose ONLY from this strict list:
    hospital, trauma_center, clinic, ambulance, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
+4. What is the user's role? If the user is the one injured/affected (e.g. "I am bleeding"), choose "victim". If the user is observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
+5. What is the patient's gender? Based on mentions like "he", "she", "male", "female", "woman", "man", choose "male", "female", or "unknown".
 
 CRITICAL INSTRUCTIONS: 
 - Mapping of facilities to categories:
@@ -35,6 +36,8 @@ CRITICAL INSTRUCTIONS:
   "is_emergency": boolean,
   "broad_categories": [string],
   "specific_facilities": [string],
+  "user_role": string,
+  "patient_gender": string,
   "explanation": string,
   "confidence_score": float
 }
@@ -86,7 +89,9 @@ async def classify_text(text: str) -> ClassifyResponse:
             specific_facilities=specific,
             explanation=data.get("explanation", "Groq LLM inferred the categories."),
             confidence_score=data.get("confidence_score", 0.9),
-            engine_used="llm"
+            engine_used="llm",
+            user_role=data.get("user_role", "unknown"),
+            patient_gender=data.get("patient_gender", "unknown")
         )
     except Exception as e:
         print(f"LLM Classification failed: {e}")

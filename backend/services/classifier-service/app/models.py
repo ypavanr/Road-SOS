@@ -16,3 +16,5 @@ class ClassifyResponse(BaseModel):
     explanation: str = Field(description="Reasoning behind the classification.")
     confidence_score: float = Field(description="Confidence score between 0.0 and 1.0.")
     engine_used: str = Field(description="The engine used to classify (e.g. 'llm' or 'rules').")
+    user_role: str = Field(default="unknown", description="Role of the user: 'victim', 'bystander', or 'unknown'.")
+    patient_gender: str = Field(default="unknown", description="Gender of the patient: 'male', 'female', or 'unknown'.")

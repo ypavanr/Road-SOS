@@ -24,6 +24,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 ### ⚙️ Dispatch Logic & Overrides
 - [ ] **Manual Override for SMS Classification**: Allow the user to explicitly define if they are the **Victim** or a **Bystander** before dispatching.
+Classification of Male or Female if mentioned and accordingly the emergency services available should be appropriate.
   - *Assignee:* [ Vibha ]
 - [ ] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
   - *Assignee:* [ Vibha ]

@@ -16,15 +16,15 @@ Finds nearby roadside assistance from a given GPS coordinate. Returns towing ser
 ```bash
 cd backend/services/roadside-service
 bash setup.sh
-source .venv/bin/activate
+source venv/bin/activate
 python main.py
 ```
 
 **Windows (PowerShell):**
 ```powershell
 cd backend\services\roadside-service
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+python -m venv venv
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 mkdir -p cache
 python main.py

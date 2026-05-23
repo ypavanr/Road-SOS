@@ -117,4 +117,6 @@ def fallback_classify(text: str) -> ClassifyResponse:
         explanation=explanation,
         confidence_score=0.7 if len(reasons) >= 2 else 0.6,
         engine_used="rules",
+        user_role="unknown",
+        patient_gender="unknown",
     )

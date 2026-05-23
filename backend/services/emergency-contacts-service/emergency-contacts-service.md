@@ -23,8 +23,8 @@ python main.py
 **Windows (PowerShell):**
 ```powershell
 cd backend\services\emergency-contacts-service
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+python -m venv venv
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python main.py
 ```

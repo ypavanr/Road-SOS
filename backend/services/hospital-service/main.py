@@ -15,6 +15,32 @@ from utils import deduplicate_by_proximity
 
 _cache: FacilityCache = None
 
+def _is_gender_specific(facility: Facility, patient_gender: str) -> bool:
+    if not patient_gender or patient_gender.lower() == "unknown":
+        return False
+        
+    name = facility.name.lower()
+    specs = [s.lower() for s in facility.specialties]
+    
+    women_keywords = ["women", "maternity", "maternal", "gynecology", "gynaecology"]
+    men_keywords = ["men", "mens", "andrology"]
+    
+    if patient_gender.lower() == "male":
+        # Check if it's a women's hospital
+        if any(kw in name for kw in women_keywords):
+            return True
+        if any(kw in spec for spec in specs for kw in women_keywords):
+            return True
+            
+    elif patient_gender.lower() == "female":
+        # Check if it's a men's hospital/clinic
+        if any(kw in name for kw in men_keywords):
+            return True
+        if any(kw in spec for spec in specs for kw in men_keywords):
+            return True
+            
+    return False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,6 +74,9 @@ async def nearby(req: NearbyRequest):
 
     if is_fresh and cached_data is not None:
         facilities = _enrich(req.lat, req.lon, cached_data)
+        if req.patient_gender:
+            facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+            
         return NearbyResponse(
             facilities=facilities, total=len(facilities), cached=True,
             lat=req.lat, lon=req.lon, radius_m=radius_m,
@@ -58,6 +87,9 @@ async def nearby(req: NearbyRequest):
     except Exception as e:
         if cached_data is not None:
             facilities = _enrich(req.lat, req.lon, cached_data)
+            if req.patient_gender:
+                facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+                
             return NearbyResponse(
                 facilities=facilities, total=len(facilities), cached=True,
                 lat=req.lat, lon=req.lon, radius_m=radius_m,
@@ -74,6 +106,11 @@ async def nearby(req: NearbyRequest):
         f.distance_km = round(haversine_km(req.lat, req.lon, f.lat, f.lon), 3)
 
     facilities = deduplicate_by_proximity(facilities)
+    
+    # Filter gender specific hospitals before sorting and truncating
+    if req.patient_gender:
+        facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+        
     facilities.sort(key=lambda f: f.distance_km)
     facilities = facilities[:30]
 

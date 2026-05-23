@@ -45,6 +45,7 @@ class NearbyRequest(BaseModel):
     lon: float
     radius_m: int = 10000
     force_refresh: bool = False
+    patient_gender: Optional[str] = None
 
 
 class NearbyResponse(BaseModel):

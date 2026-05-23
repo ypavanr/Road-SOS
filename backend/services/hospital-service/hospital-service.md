@@ -21,8 +21,8 @@ bash setup.sh
 **Windows (PowerShell):**
 ```powershell
 cd backend\services\hospital-service
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+python -m venv venv
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 mkdir -p cache
 ```
@@ -34,14 +34,14 @@ This creates a virtual environment, installs dependencies, and creates the `cach
 **macOS / Linux / zsh:**
 ```bash
 cd backend/services/hospital-service
-source .venv/bin/activate
+source venv/bin/activate
 python main.py
 ```
 
 **Windows (PowerShell):**
 ```powershell
 cd backend\services\hospital-service
-.venv\Scripts\Activate.ps1
+venv\Scripts\Activate.ps1
 python main.py
 ```
 
