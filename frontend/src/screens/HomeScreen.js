@@ -122,27 +122,47 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   const findNearby = useCallback(async (lat, lon, classification = null) => {
     try {
       setContextLoadingMsg('Fetching emergency services...');
-      const bodyObj = { lat, lon, radius_m: 10000 };
-      if (classification?.patient_gender) {
-        bodyObj.patient_gender = classification.patient_gender;
-      }
-      const body = JSON.stringify(bodyObj);
+      let allFacilities = [];
+      let currentRadius = 6000;
+      const MAX_RADIUS = 20000;
+      const requiredTypes = classification?.specific_facilities || [];
       const headers = { 'Content-Type': 'application/json' };
 
-      const [medRes, roadRes] = await Promise.allSettled([
-        fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
-        fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
-      ]);
+      while (currentRadius <= MAX_RADIUS) {
+        setContextLoadingMsg(`Searching within ${currentRadius / 1000}km...`);
+        const bodyObj = { lat, lon, radius_m: currentRadius };
+        if (classification?.patient_gender) {
+          bodyObj.patient_gender = classification.patient_gender;
+        }
+        const body = JSON.stringify(bodyObj);
 
-      let allFacilities = [];
-      if (medRes.status === 'fulfilled' && medRes.value.ok) {
-        const d = await medRes.value.json();
-        allFacilities = allFacilities.concat(d.facilities || []);
+        const [medRes, roadRes] = await Promise.allSettled([
+          fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
+          fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
+        ]);
+
+        let freshFacilities = [];
+        if (medRes.status === 'fulfilled' && medRes.value.ok) {
+          const d = await medRes.value.json();
+          freshFacilities = freshFacilities.concat(d.facilities || []);
+        }
+        if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
+          const d = await roadRes.value.json();
+          freshFacilities = freshFacilities.concat(d.facilities || []);
+        }
+
+        allFacilities = freshFacilities;
+
+        if (requiredTypes.length > 0) {
+          const primaryType = getPrimaryFacilityType(requiredTypes);
+          const matching = allFacilities.filter(f => f.type === primaryType);
+          if (matching.length >= 2) break;
+        } else {
+          if (allFacilities.length >= 3) break;
+        }
+        currentRadius += 3000;
       }
-      if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
-        const d = await roadRes.value.json();
-        allFacilities = allFacilities.concat(d.facilities || []);
-      }
+
       setFacilities(allFacilities);
       setContextLoadingMsg(null);
       return allFacilities;
@@ -196,7 +216,11 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         const data = await response.json();
         setContextLoadingMsg(null);
 
-        if (!data.is_emergency) return;
+        if (!data.is_emergency) {
+          setClassification(data);
+          onNavigateToMap();
+          return;
+        }
 
         if ((data.confidence_score || 0) >= HIGH_CONFIDENCE_THRESHOLD) {
           // High confidence → auto-route

@@ -177,6 +177,78 @@ function getBestPerServiceType(facilities, specificFacilities) {
   return result;
 }
 
+// ── AI Triage Card Component ──────────────────────────────────────────────────
+
+const AITriageCard = ({ classification }) => {
+  if (!classification) return null;
+
+  const confPercent = Math.round((classification.confidence_score || 0) * 100);
+  const isEmergency = classification.is_emergency;
+
+  const bgColor = isEmergency ? '#f0fdf4' : '#f8fafc';
+  const borderColor = isEmergency ? '#bbf7d0' : '#e2e8f0';
+  const headerIcon = isEmergency ? 'alert' : 'information-circle';
+  const headerColor = isEmergency ? '#166534' : '#334155';
+  const confBg = isEmergency ? '#dcfce7' : '#fef3c7';
+  const confText = isEmergency ? '#166534' : '#92400e';
+
+  return (
+    <View style={[styles.triageCard, { backgroundColor: bgColor, borderColor: borderColor }]}>
+      <View style={styles.triageHeader}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name={headerIcon} size={20} color={isEmergency ? '#dc2626' : '#64748b'} />
+          <Text style={[styles.triageTitle, { color: headerColor }]}>AI Triage Assessment</Text>
+        </View>
+        <View style={[styles.confPill, { backgroundColor: confBg }]}>
+          <Text style={[styles.confPillText, { color: confText }]}>
+            {confPercent}% ({classification.engine_used || 'llm'})
+          </Text>
+        </View>
+      </View>
+
+      <Text style={[styles.triageEmergencyText, { color: isEmergency ? '#166534' : '#334155' }]}>
+        Emergency: {isEmergency ? '✅ Yes' : '❌ No'}
+      </Text>
+
+      {classification.broad_categories?.length > 0 && (
+        <View style={styles.triageCategories}>
+          {classification.broad_categories.map(cat => (
+            <View key={cat} style={styles.broadCatPill}>
+              <Ionicons name={cat === 'medical' ? 'medkit' : cat === 'police' ? 'shield-checkmark' : 'build'} size={12} color="#3730a3" />
+              <Text style={styles.broadCatText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View style={[styles.explanationBox, { backgroundColor: isEmergency ? '#ecfdf5' : '#f1f5f9' }]}>
+        <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Why this classification:</Text>
+        <Text style={[styles.explanationText, { color: isEmergency ? '#064e3b' : '#334155' }]}>
+          {classification.explanation}
+        </Text>
+      </View>
+
+      {classification.specific_facilities?.length > 0 && (
+        <View style={{ marginTop: 12 }}>
+          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Specific assistance needed:</Text>
+          <View style={styles.specificFacContainer}>
+            {classification.specific_facilities.map(fac => {
+              const label = fac.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+              const icon = TYPE_ICON[fac] || 'help-circle';
+              return (
+                <View key={fac} style={styles.specificFacPill}>
+                  <Ionicons name={icon} size={14} color="#b91c1c" />
+                  <Text style={styles.specificFacText}>{label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function MapScreen({ onBack }) {
@@ -262,17 +334,33 @@ export default function MapScreen({ onBack }) {
       if (!cfg) return;
       setFetchingFacilities(true);
       try {
-        const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, radius_m: 10000 }),
-        });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const fresh = data.facilities || [];
+        let currentRadius = 6000;
+        const MAX_RADIUS = 20000;
+        let allFresh = [];
+        let matchingCount = 0;
+
+        while (currentRadius <= MAX_RADIUS) {
+          const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lon, radius_m: currentRadius }),
+          });
+          
+          if (resp.ok) {
+            const data = await resp.json();
+            allFresh = data.facilities || [];
+            matchingCount = allFresh.filter((f) => cfg.facilityTypes.includes(f.type)).length;
+            
+            if (matchingCount >= 2) {
+              break;
+            }
+          }
+          currentRadius += 3000;
+        }
+
         setFacilities((prev) => {
           const existingIds = new Set(prev.map((f) => f.id));
-          const merged = [...prev, ...fresh.filter((f) => !existingIds.has(f.id))];
+          const merged = [...prev, ...allFresh.filter((f) => !existingIds.has(f.id))];
           return merged;
         });
       } catch (e) {
@@ -617,7 +705,9 @@ export default function MapScreen({ onBack }) {
             style={styles.facilityList}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.listTitle}>
+            <AITriageCard classification={classification} />
+
+            <Text style={[styles.listTitle, classification && { marginTop: 16 }]}>
               {topFacilities.length > 0
                 ? `Top ${topFacilities.length} Nearby — ${activeCfg.name}`
                 : `No ${activeCfg.name} facilities found nearby`}
@@ -845,4 +935,29 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: '#fff',
   },
   sosFloatText: { color: '#fff', fontSize: 22, fontWeight: '900' },
+
+  triageCard: {
+    marginBottom: 12, padding: 16,
+    borderRadius: 14, borderWidth: 1,
+  },
+  triageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  triageTitle: { fontSize: 16, fontWeight: '800' },
+  confPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  confPillText: { fontSize: 12, fontWeight: '700' },
+  triageEmergencyText: { fontSize: 14, fontWeight: '700', marginBottom: 12 },
+  triageCategories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  broadCatPill: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0e7ff',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4
+  },
+  broadCatText: { color: '#3730a3', fontSize: 13, fontWeight: '700' },
+  explanationBox: { padding: 12, borderRadius: 10 },
+  explanationTitle: { fontSize: 13, fontWeight: '800', marginBottom: 4 },
+  explanationText: { fontSize: 14, lineHeight: 20 },
+  specificFacContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  specificFacPill: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4
+  },
+  specificFacText: { color: '#b91c1c', fontSize: 13, fontWeight: '700' },
 });
