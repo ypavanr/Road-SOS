@@ -16,22 +16,28 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Emegency Contact Feature**: Multiple registartions of contacts and removal of hardcoded contact dependency for emergency contact sms
 - [x] **Maps Display**: Maps displayed immediately on load, irrespective of voice input.
 - [x] **Text input box**: Dynamic UI toggle for manual text emergency classification.
-
----
-
-## 🚧 Remaining Tasks
-
-### 🗺️ Navigation & UI
 - [ ] **Maps Integration**: Implement live map view/routing on the frontend.
   - *Assignee:* [ Pavan,Sangam ]
 - [ ] **Path Optimization**: Optimize the routing and path to nearby facilities after maps integration.
   - *Assignee:* [ Pavan,Sangam ]
 - [ ] **UI Scroll for Register Page**: Implement proper scrolling behavior on the registration screen so all dynamic inputs are accessible.
   - *Assignee:* [ Tanish ]
-
-### 📝 Registration & Profiles
 - [ ] **Expanded Registration Info**: Ask the user for Home Address, Work Address, Working Profession, and fetch latitude/longitude coordinates for these addresses if possible.
   - *Assignee:* [ Tanish ]
+- [ ] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
+  - *Assignee:* [ Pavan,Sangam ]
+- [ ]**AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
+---
+
+## 🚧 Remaining Tasks
+
+### 🗺️ Navigation & UI
+
+
+
+
+### 📝 Registration & Profiles
+
 
 
 ### ⚙️ Dispatch Logic & Overrides
@@ -43,8 +49,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [ ] **Role-Based SMS Routing**: If Victim -> send SMS to trauma center, general (police/fire/all ppl nearb), and emergency contacts. If Bystander -> send SMS to trauma center and general, but NOT emergency contacts.
 (Except trauma centre finish everything else)
   - *Assignee:* [ Tanish,Vibha ]
-- [ ] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
-  - *Assignee:* [ Pavan,Sangam ]
+
 - [ ] **Telegram Chatbot Debugging**: Debug and stabilize the Telegram dispatch chatbot.
   - *Assignee:* [ Vibha ]
 
