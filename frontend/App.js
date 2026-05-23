@@ -1,13 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  StyleSheet, Text, View, ActivityIndicator, ScrollView,
-  TouchableOpacity, Linking, Alert, SectionList, TextInput, Platform
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
-import { API_GATEWAY_URL } from './config';
-import { startRecording, stopRecording, uploadAudio } from './src/services/audioService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import SOSScreen from './src/screens/SOSScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -500,168 +494,60 @@ function DashboardScreen() {
   );
 }
 
+import RegistrationScreen from './src/screens/RegistrationScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import MapScreen from './src/screens/MapScreen';
+
 export default function App() {
-  const [tab, setTab] = useState('Dashboard');
+  const [currentScreen, setCurrentScreen] = useState('Loading');
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await AsyncStorage.getItem('userData');
+        if (data) {
+          setUserData(JSON.parse(data));
+          setCurrentScreen('Home');
+        } else {
+          setCurrentScreen('Registration');
+        }
+      } catch (e) {
+        setCurrentScreen('Registration');
+      }
+    })();
+  }, []);
+
+  const handleRegister = (data) => {
+    setUserData(data);
+    setCurrentScreen('Home');
+  };
+
+  if (currentScreen === 'Loading') {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ef4444" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f1f5f9" />
-
-      <View style={styles.screen}>
-        {tab === 'Dashboard' && <DashboardScreen />}
-        {tab === 'SOS' && <SOSScreen />}
-        {tab === 'Settings' && <SettingsScreen />}
-      </View>
-
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tab} onPress={() => setTab('Dashboard')}>
-          <Ionicons name="home" size={22} color={tab === 'Dashboard' ? '#2563eb' : '#475569'} />
-          <Text style={[styles.tabLabel, tab === 'Dashboard' && styles.tabActive]}>Dashboard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab} onPress={() => setTab('SOS')}>
-          <Ionicons name="warning" size={22} color={tab === 'SOS' ? '#EF4444' : '#475569'} />
-          <Text style={[styles.tabLabel, tab === 'SOS' && { color: '#EF4444' }]}>SOS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab} onPress={() => setTab('Settings')}>
-          <Ionicons name="settings-outline" size={22} color={tab === 'Settings' ? '#2563eb' : '#475569'} />
-          <Text style={[styles.tabLabel, tab === 'Settings' && styles.tabActive]}>Settings</Text>
-        </TouchableOpacity>
-      </View>
+      <StatusBar style="dark" />
+      {currentScreen === 'Registration' && (
+        <RegistrationScreen onRegister={handleRegister} />
+      )}
+      {currentScreen === 'Home' && (
+        <HomeScreen onNavigateToMap={() => setCurrentScreen('Map')} />
+      )}
+      {currentScreen === 'Map' && (
+        <MapScreen onBack={() => setCurrentScreen('Home')} />
+      )}
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  root:     { flex: 1, backgroundColor: '#f1f5f9' },
-  screen:   { flex: 1 },
-  tabBar:   {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopColor: '#e2e8f0', borderTopWidth: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-    paddingTop: 8, height: Platform.OS === 'ios' ? 80 : 60,
-  },
-  tab:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  tabLabel: { color: '#475569', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  tabActive:{ color: '#2563eb' },
-  
-  bg: { flex: 1, backgroundColor: '#f1f5f9' },
-  container: { padding: 20, paddingTop: 60, paddingBottom: 40 },
-
-  title: {
-    fontSize: 28, fontWeight: '800', color: '#0f172a',
-    marginBottom: 16, textAlign: 'center',
-  },
-
-  locationStrip: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 12,
-    marginBottom: 16, alignItems: 'center',
-  },
-  locationText: { fontSize: 13, color: '#475569', fontFamily: 'monospace' },
-
-  contactsSection: { marginBottom: 16 },
-  contactsSectionTitle: {
-    fontSize: 13, fontWeight: '700', color: '#475569',
-    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10,
-  },
-  chipsScroll: { flexDirection: 'row' },
-  chip: {
-    backgroundColor: '#fff', borderWidth: 1.5, borderRadius: 12,
-    paddingVertical: 10, paddingHorizontal: 14, marginRight: 10,
-    alignItems: 'center', minWidth: 80,
-  },
-  chipEmoji: { fontSize: 20, marginBottom: 4 },
-  chipNumber: { fontSize: 15, fontWeight: '800' },
-  chipName: { fontSize: 10, color: '#64748b', marginTop: 2, textAlign: 'center', maxWidth: 72 },
-
-  sos: {
-    backgroundColor: '#dc2626', borderRadius: 14, paddingVertical: 18,
-    alignItems: 'center', marginBottom: 16,
-    shadowColor: '#dc2626', shadowOpacity: 0.4, shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 }, elevation: 6,
-  },
-  recordBtn: {
-    backgroundColor: '#0f172a', shadowColor: '#0f172a',
-  },
-  recordingActive: {
-    backgroundColor: '#ef4444',
-  },
-  transcriptionBox: {
-    backgroundColor: '#e0f2fe', padding: 12, borderRadius: 10, marginBottom: 16,
-    borderColor: '#38bdf8', borderWidth: 1
-  },
-  transcriptionText: {
-    color: '#0369a1', fontSize: 14, fontWeight: '600', textAlign: 'center'
-  },
-  sosDisabled: { backgroundColor: '#94a3b8', shadowOpacity: 0 },
-  sosText: { color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },
-
-  error: { color: '#dc2626', textAlign: 'center', marginBottom: 12, lineHeight: 20 },
-  empty: { color: '#94a3b8', textAlign: 'center', marginBottom: 12, fontStyle: 'italic' },
-
-  textInputBox: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  textInput: { flex: 1, backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, borderWidth: 1, borderColor: '#cbd5e1' },
-  textInputBtn: { backgroundColor: '#1d4ed8', borderRadius: 10, justifyContent: 'center', paddingHorizontal: 16 },
-  textInputBtnText: { color: '#fff', fontWeight: '700' },
-
-  classificationBox: { backgroundColor: '#f0fdf4', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#86efac' },
-  classHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  classificationTitle: { fontSize: 16, fontWeight: '800', color: '#166534' },
-  classificationText: { fontSize: 13, color: '#15803d', marginBottom: 6 },
-  confBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  confBadgeText: { fontSize: 11, fontWeight: '700' },
-  broadRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  broadBadge: { backgroundColor: '#dbeafe', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  broadBadgeText: { fontSize: 12, fontWeight: '700', color: '#1e40af' },
-  explanationBox: { backgroundColor: '#ecfdf5', borderRadius: 8, padding: 10, marginBottom: 10 },
-  explanationLabel: { fontSize: 11, fontWeight: '700', color: '#065f46', marginBottom: 3 },
-  explanationText: { fontSize: 12, color: '#047857', lineHeight: 18 },
-  facilitiesNeededLabel: { fontSize: 11, fontWeight: '700', color: '#065f46', marginBottom: 6 },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  facBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  facBadgeText: { fontSize: 12, fontWeight: '700' },
-
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 8, marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
-  sectionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionCount: { fontSize: 13, color: '#64748b' },
-  cachedBadge: {
-    backgroundColor: '#fef3c7', color: '#92400e', fontSize: 11,
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, fontWeight: '600',
-  },
-
-  card: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14,
-    borderLeftWidth: 4,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 3,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
-  cardEmoji: { fontSize: 26 },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#0f172a', flexShrink: 1 },
-  cardType: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-  badge: { backgroundColor: '#dcfce7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeText: { fontSize: 10, color: '#166534', fontWeight: '700' },
-
-  etaRow: { flexDirection: 'row', gap: 12, marginBottom: 10 },
-  etaBox: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 8, padding: 10, alignItems: 'center' },
-  etaValue: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  etaLabel: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-
-  address: { fontSize: 13, color: '#64748b', marginBottom: 8, lineHeight: 18 },
-
-  phoneBtn: {
-    backgroundColor: '#eff6ff', borderRadius: 8,
-    paddingVertical: 10, paddingHorizontal: 14, marginBottom: 4,
-  },
-  phoneBtnText: { color: '#1d4ed8', fontWeight: '600', fontSize: 14 },
-
-  website: { color: '#2563eb', fontSize: 12, marginTop: 4, textDecorationLine: 'underline' },
-  meta: { fontSize: 12, color: '#64748b', marginTop: 4 },
-  specialties: { fontSize: 12, color: '#7c3aed', marginTop: 4, fontStyle: 'italic' },
+  root: { flex: 1, backgroundColor: '#f8fafc' },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' },
 });
