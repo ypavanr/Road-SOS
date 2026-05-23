@@ -27,6 +27,12 @@ def transcribe_with_whisper(file_path: str) -> Dict[str, Any]:
     text = result.get("text", "").strip()
     language = result.get("language", "unknown")
     
+    # Filter out common Whisper hallucinations for silence/background noise
+    hallucinations = ["yes", "yes.", "yeah", "yeah.", "thank you.", "thank you", "you.", "you", "mhm.", "mhm"]
+    if text.lower() in hallucinations:
+        logger.info(f"Filtered out likely hallucinated text: '{text}'")
+        text = ""
+    
     return {
         "success": True,
         "provider": "whisper",

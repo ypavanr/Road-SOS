@@ -180,6 +180,8 @@ function getBestPerServiceType(facilities, specificFacilities) {
 // ── AI Triage Card Component ──────────────────────────────────────────────────
 
 const AITriageCard = ({ classification }) => {
+  const [showExplanation, setShowExplanation] = useState(false);
+
   if (!classification) return null;
 
   const confPercent = Math.round((classification.confidence_score || 0) * 100);
@@ -221,12 +223,21 @@ const AITriageCard = ({ classification }) => {
         </View>
       )}
 
-      <View style={[styles.explanationBox, { backgroundColor: isEmergency ? '#ecfdf5' : '#f1f5f9' }]}>
-        <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Why this classification:</Text>
-        <Text style={[styles.explanationText, { color: isEmergency ? '#064e3b' : '#334155' }]}>
-          {classification.explanation}
-        </Text>
-      </View>
+      {showExplanation ? (
+        <View style={[styles.explanationBox, { backgroundColor: isEmergency ? '#ecfdf5' : '#f1f5f9' }]}>
+          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Why this classification:</Text>
+          <Text style={[styles.explanationText, { color: isEmergency ? '#064e3b' : '#334155' }]}>
+            {classification.explanation}
+          </Text>
+          <TouchableOpacity onPress={() => setShowExplanation(false)} style={{marginTop: 8}}>
+            <Text style={{color: '#2563eb', fontWeight: '600'}}>Hide Explanation</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={() => setShowExplanation(true)} style={{marginTop: 8, marginBottom: 4}}>
+           <Text style={{color: '#2563eb', fontWeight: '600'}}>Show AI Explanation</Text>
+        </TouchableOpacity>
+      )}
 
       {classification.specific_facilities?.length > 0 && (
         <View style={{ marginTop: 12 }}>
@@ -274,6 +285,7 @@ export default function MapScreen({ onBack }) {
   const [routeError, setRouteError] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [fetchingFacilities, setFetchingFacilities] = useState(false);
+  const [multiRoutes, setMultiRoutes] = useState({});
 
   // Derived: top facilities for the active filter
   const topFacilities = useMemo(
@@ -318,14 +330,62 @@ export default function MapScreen({ onBack }) {
   useEffect(() => {
     if (!topFacilities.length || !userLocation) return;
     const best = topFacilities[0];
-    if (
-      selectedFacility?.id === best.id &&
-      activeRoute
-    ) {
-      return; // already routed to this facility
+    
+    // Always trigger primary route selection if changed
+    if (selectedFacility?.id !== best.id || !activeRoute) {
+      selectFacility(best);
     }
-    selectFacility(best);
-  }, [topFacilities, userLocation]);
+
+    // Trigger secondary routes fetch for multi-service emergencies
+    if (classification?.is_emergency && classification.specific_facilities?.length > 1) {
+      fetchMultiRoutes(bestPerService);
+    } else {
+      setMultiRoutes({});
+    }
+  }, [topFacilities, userLocation, classification, bestPerService]);
+
+  // ── Fetch multiple secondary routes ─────────────
+  const fetchMultiRoutes = useCallback(
+    async (bestFacilitiesMap) => {
+      if (!userLocation || !classification?.is_emergency) return;
+      
+      const newMultiRoutes = {};
+      const fetchPromises = [];
+      const primaryType = getPrimaryFacilityType(classification?.specific_facilities || []);
+
+      Object.entries(bestFacilitiesMap).forEach(([svcType, facility]) => {
+        if (!facility || svcType === primaryType) return;
+
+        const p = fetch(`${API_GATEWAY_URL}/route`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_lat: userLocation.latitude,
+            source_lon: userLocation.longitude,
+            dest_lat: facility.lat,
+            dest_lon: facility.lon,
+          }),
+        })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.polyline?.length) {
+            newMultiRoutes[svcType] = data;
+          }
+        })
+        .catch(e => console.error(`Multi-route error for ${svcType}:`, e));
+
+        fetchPromises.push(p);
+      });
+
+      if (fetchPromises.length > 0) {
+        await Promise.all(fetchPromises);
+        setMultiRoutes(newMultiRoutes);
+      } else {
+        setMultiRoutes({});
+      }
+    },
+    [userLocation, classification]
+  );
 
   // ── Fetch additional facilities if the filter returns nothing ──
   const fetchFacilitiesForFilter = useCallback(
@@ -392,22 +452,6 @@ export default function MapScreen({ onBack }) {
         if (!resp.ok) throw new Error(`Route fetch failed: ${resp.status}`);
         const data = await resp.json();
         setActiveRoute(data);
-
-        // Animate map to fit route
-        if (mapRef.current && data.polyline?.length) {
-          const coords = data.polyline.map((p) => ({
-            latitude: p.latitude,
-            longitude: p.longitude,
-          }));
-          mapRef.current.fitToCoordinates(
-            [
-              { latitude: userLocation.latitude, longitude: userLocation.longitude },
-              ...coords,
-              { latitude: facility.lat, longitude: facility.lon },
-            ],
-            { edgePadding: { top: 80, right: 60, bottom: 360, left: 60 }, animated: true },
-          );
-        }
       } catch (e) {
         console.error('Route fetch error:', e);
         setRouteError(true);
@@ -427,6 +471,26 @@ export default function MapScreen({ onBack }) {
     },
     [setSelectedFacility, fetchRoute],
   );
+
+  // ── Reactive map fitting for all routes ──────────────────────
+  useEffect(() => {
+    if (mapRef.current && activeRoute?.polyline?.length && userLocation) {
+      const allCoords = [{ latitude: userLocation.latitude, longitude: userLocation.longitude }];
+      
+      allCoords.push(...activeRoute.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude })));
+      
+      Object.values(multiRoutes).forEach(rt => {
+         if (rt.polyline) {
+            allCoords.push(...rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude })));
+         }
+      });
+      
+      mapRef.current.fitToCoordinates(allCoords, { 
+        edgePadding: { top: 80, right: 60, bottom: 360, left: 60 }, 
+        animated: true 
+      });
+    }
+  }, [activeRoute, multiRoutes, userLocation]);
 
   // ── Filter tab change ─────────────────────────────────────────
   const handleFilterChange = useCallback(
@@ -604,7 +668,23 @@ export default function MapScreen({ onBack }) {
             );
           })}
 
-          {/* Route Polyline */}
+          {/* Multi-Routes Polylines */}
+          {Object.entries(multiRoutes).map(([svcType, rt]) => {
+             if (!rt.polyline || rt.polyline.length < 2) return null;
+             const color = TYPE_COLOR[svcType] || '#64748b';
+             const coords = rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+             return (
+               <Polyline
+                 key={`route-${svcType}`}
+                 coordinates={coords}
+                 strokeColor={color}
+                 strokeWidth={4}
+                 lineDashPattern={undefined}
+               />
+             );
+          })}
+
+          {/* Primary Route Polyline */}
           {polylineCoords.length > 1 && (
             <Polyline
               coordinates={polylineCoords}
@@ -668,7 +748,7 @@ export default function MapScreen({ onBack }) {
                       <Ionicons name="location" size={13} color="#64748b" style={{ marginRight: 3 }} />
                       <Text style={styles.routeCardBadgeText}>
                         {activeRoute?.distance_km != null
-                          ? `${activeRoute.distance_km} km`
+                          ? `${Number(activeRoute.distance_km).toFixed(2)} km`
                           : '—'}
                       </Text>
                     </View>
@@ -745,7 +825,7 @@ export default function MapScreen({ onBack }) {
                       {fac.name}
                     </Text>
                     <Text style={styles.facMeta}>
-                      {fac.distance_km != null ? `${fac.distance_km} km` : ''}
+                      {fac.distance_km != null ? `${Number(fac.distance_km).toFixed(2)} km` : ''}
                       {fac.eta_text ? ` · ${fac.eta_text}` : ''}
                     </Text>
                     {fac.emergency && (

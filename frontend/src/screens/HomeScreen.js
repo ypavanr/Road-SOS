@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -74,6 +74,7 @@ const LOADING_MESSAGES = [
 export default function HomeScreen({ onNavigateToMap, userData }) {
   const {
     setClassification,
+    facilities,
     setFacilities,
     setSelectedService,
     setIsEmergencyMode,
@@ -91,6 +92,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   // Text input
   const [isTextInputMode, setIsTextInputMode] = useState(false);
   const [manualText, setManualText] = useState('');
+  const preloadPromiseRef = useRef(null);
 
   // Low-confidence confirmation state
   const [pendingClassification, setPendingClassification] = useState(null);
@@ -106,9 +108,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setLocation(loc);
       setLocationLoading(false);
       if (loc?.coords) {
-        findNearby(loc.coords.latitude, loc.coords.longitude);
+        preloadPromiseRef.current = preloadFacilities(loc.coords.latitude, loc.coords.longitude);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { latitude, longitude } = location?.coords || {};
@@ -118,22 +121,50 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     setLoadingMessage(msg);
   };
 
-  // ── Fetch all nearby facilities and store in context ──────────
-  const findNearby = useCallback(async (lat, lon, classification = null) => {
+  // ── Fetch exactly 6km on mount (Preload) ──────────
+  const preloadFacilities = useCallback(async (lat, lon) => {
     try {
-      setContextLoadingMsg('Fetching emergency services...');
-      let allFacilities = [];
-      let currentRadius = 6000;
+      setContextLoadingMsg('Preloading nearby emergency services...');
+      const headers = { 'Content-Type': 'application/json' };
+      const body = JSON.stringify({ lat, lon, radius_m: 6000 });
+
+      const [medRes, roadRes] = await Promise.allSettled([
+        fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
+        fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
+      ]);
+
+      let freshFacilities = [];
+      if (medRes.status === 'fulfilled' && medRes.value.ok) {
+        const d = await medRes.value.json();
+        freshFacilities = freshFacilities.concat(d.facilities || []);
+      }
+      if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
+        const d = await roadRes.value.json();
+        freshFacilities = freshFacilities.concat(d.facilities || []);
+      }
+
+      setFacilities(freshFacilities);
+      setContextLoadingMsg(null);
+      return freshFacilities;
+    } catch (e) {
+      console.error('Preload failed', e);
+      setContextLoadingMsg(null);
+      return [];
+    }
+  }, [setFacilities]);
+
+  // ── Incremental fetch for missing types (Fallback) ──────────
+  const incrementalFetchFacilities = useCallback(async (lat, lon, missingTypes, existingFacilities) => {
+    try {
+      setContextLoadingMsg('Searching wider area for specific services...');
+      let allFacilities = [...existingFacilities];
+      let currentRadius = 11000; // Next step after 6km is 6+5=11km
       const MAX_RADIUS = 20000;
-      const requiredTypes = classification?.specific_facilities || [];
       const headers = { 'Content-Type': 'application/json' };
 
       while (currentRadius <= MAX_RADIUS) {
         setContextLoadingMsg(`Searching within ${currentRadius / 1000}km...`);
         const bodyObj = { lat, lon, radius_m: currentRadius };
-        if (classification?.patient_gender) {
-          bodyObj.patient_gender = classification.patient_gender;
-        }
         const body = JSON.stringify(bodyObj);
 
         const [medRes, roadRes] = await Promise.allSettled([
@@ -151,27 +182,33 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           freshFacilities = freshFacilities.concat(d.facilities || []);
         }
 
-        allFacilities = freshFacilities;
+        // Merge keeping unique ids
+        const existingIds = new Set(allFacilities.map(f => f.id));
+        const newUnique = freshFacilities.filter(f => !existingIds.has(f.id));
+        allFacilities = [...allFacilities, ...newUnique];
 
-        if (requiredTypes.length > 0) {
-          const primaryType = getPrimaryFacilityType(requiredTypes);
-          const matching = allFacilities.filter(f => f.type === primaryType);
-          if (matching.length >= 2) break;
-        } else {
-          if (allFacilities.length >= 3) break;
+        let stillMissing = false;
+        for (const type of missingTypes) {
+           const matching = allFacilities.filter(f => f.type === type);
+           if (matching.length < 2) {
+             stillMissing = true;
+             break;
+           }
         }
-        currentRadius += 3000;
+        
+        if (!stillMissing) break;
+        currentRadius += 5000; // Increment by 5km
       }
 
       setFacilities(allFacilities);
       setContextLoadingMsg(null);
       return allFacilities;
     } catch (e) {
-      console.error('Failed to fetch nearby', e);
+      console.error('Incremental fetch failed', e);
       setContextLoadingMsg(null);
-      return [];
+      return existingFacilities;
     }
-  }, [setFacilities, setLoadingMessage]);
+  }, [setFacilities]);
 
   // ── Act on a confirmed (or high-confidence) classification ────
   const applyClassification = useCallback(
@@ -183,8 +220,23 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setSelectedService(filterId);
       setIsEmergencyMode(true);
 
-      setContextLoadingMsg('Finding nearest trauma center...');
-      const facilities = await findNearby(lat, lon, data);
+      setContextLoadingMsg('Checking preloaded data...');
+      let currentFacilities = facilities;
+      if (preloadPromiseRef.current) {
+         currentFacilities = await preloadPromiseRef.current;
+      }
+      
+      const missingTypes = [];
+      for (const requiredType of (data.specific_facilities || [])) {
+         const matching = currentFacilities.filter(f => f.type === requiredType);
+         if (matching.length < 2) { 
+             missingTypes.push(requiredType);
+         }
+      }
+
+      if (missingTypes.length > 0) {
+         await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities);
+      }
 
       if (data.user_role === 'victim' && location?.coords && userData) {
         sendSOSViaSMS(
@@ -195,7 +247,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
       onNavigateToMap();
     },
-    [setClassification, setSelectedService, setIsEmergencyMode, findNearby, location, userData, onNavigateToMap],
+    [setClassification, setSelectedService, setIsEmergencyMode, incrementalFetchFacilities, location, userData, onNavigateToMap, facilities],
   );
 
   // ── Classify text and decide what to do ──────────────────────
@@ -256,8 +308,13 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         const result = await uploadAudio(filePath);
         setLoading(false);
         if (result.success) {
-          setTranslation(result.text);
-          if (latitude && longitude) handleClassify(result.text, latitude, longitude);
+          const transcribedText = result.text?.trim() || '';
+          if (!transcribedText) {
+            setTranslation('No speech detected.');
+            return;
+          }
+          setTranslation(transcribedText);
+          if (latitude && longitude) handleClassify(transcribedText, latitude, longitude);
         } else {
           setTranslation('Transcription failed.');
         }
@@ -274,8 +331,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   const handleServiceTap = async (serviceId) => {
     clearEmergency();
     setSelectedService(serviceId);
-    if (latitude && longitude) {
-      await findNearby(latitude, longitude);
+    if (preloadPromiseRef.current) {
+       setContextLoadingMsg('Waiting for preloaded data...');
+       await preloadPromiseRef.current;
+       setContextLoadingMsg(null);
     }
     onNavigateToMap();
   };
@@ -431,7 +490,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
         {/* Map Button */}
         <View style={styles.footerContainer}>
-          <TouchableOpacity style={styles.mapBtn} onPress={onNavigateToMap}>
+          <TouchableOpacity style={styles.mapBtn} onPress={async () => {
+             if (preloadPromiseRef.current) {
+                setContextLoadingMsg('Waiting for preloaded data...');
+                await preloadPromiseRef.current;
+                setContextLoadingMsg(null);
+             }
+             onNavigateToMap();
+          }}>
             <Text style={styles.mapBtnText}>Go to Map View</Text>
             <Ionicons name="map" size={20} color="#fff" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
