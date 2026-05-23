@@ -14,6 +14,8 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Classification of Male or Female**: Accordingly the emergency services changed
 - [x] **Classification of Victim or Bystander**: Accordinlgy emergency contact sms is sent or not.
 - [x] **Emegency Contact Feature**: Multiple registartions of contacts and removal of hardcoded contact dependency for emergency contact sms
+- [x] **Maps Display**: Maps displayed immediately on load, irrespective of voice input.
+- [x] **Text input box**: Dynamic UI toggle for manual text emergency classification.
 
 ---
 
@@ -24,8 +26,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Pavan,Sangam ]
 - [ ] **Path Optimization**: Optimize the routing and path to nearby facilities after maps integration.
   - *Assignee:* [ Pavan,Sangam ]
-- [ ] **Maps Display**: Maps to be displayed irrespective if input is given or not
-  - *Assignee:* [ Vibha ]
+
 
 ### ⚙️ Dispatch Logic & Overrides
 - [ ] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
@@ -33,7 +34,11 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - [ ] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
-    - [ ] **Text input box**: Text input ui change
+
+### 🧠 Advanced AI Triage & Media
+- [ ] **Detailed Demographic Classification**: Classify for age/demographics (children, pregnant women) and specific injury types (e.g., eye or head injuries) to refine dispatch.
+  - *Assignee:* [ Vibha ]
+- [ ] **Image Input Option**: Allow users to attach images of the incident to be parsed by AI and sent via SMS (Requires further discussion).
   - *Assignee:* [ Vibha ]
 
 ### 📡 Advanced Offline / Peer-to-Peer SOS

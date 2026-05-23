@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Dimensions, TextInput } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { API_GATEWAY_URL } from '../../config';
@@ -27,21 +27,9 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationLoading(false);
-        return;
-      }
-
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc);
-      setLocationLoading(false);
-    })();
-  }, []);
-
-  const { latitude, longitude } = location?.coords || {};
+  // Text input state
+  const [isTextInputMode, setIsTextInputMode] = useState(false);
+  const [manualText, setManualText] = useState('');
 
   const findNearby = async (lat, lon, classification) => {
     try {
@@ -73,6 +61,28 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
     }
   };
 
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationLoading(false);
+        return;
+      }
+
+      let loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
+      setLocationLoading(false);
+      
+      // Initial fetch without AI classification filters
+      if (loc && loc.coords) {
+        findNearby(loc.coords.latitude, loc.coords.longitude);
+      }
+    })();
+  }, []);
+
+  const { latitude, longitude } = location?.coords || {};
+
+
   const handleClassify = async (textToClassify, lat, lon) => {
     if (!textToClassify) return;
     try {
@@ -103,7 +113,18 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
     }
   };
 
+  const handleManualSubmit = () => {
+    if (!manualText.trim()) return;
+    setTranslation(manualText);
+    setIsTextInputMode(false); // Switch back to read-only view
+    if (latitude && longitude) {
+      handleClassify(manualText, latitude, longitude);
+    }
+    setManualText('');
+  };
+
   const handleRecordSOS = async () => {
+    setIsTextInputMode(false);
     if (isRecording) {
       setIsRecording(false);
       const filePath = await stopRecording();
@@ -157,16 +178,38 @@ export default function HomeScreen({ onNavigateToMap, setFacilities, userData })
             {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name={isRecording ? "square" : "mic"} size={24} color="#fff" />}
             <Text style={[styles.actionText, { color: '#fff' }]}>{isRecording ? "STOP" : "VOICE"}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.textBtn]} onPress={() => setTranslation('Text inputted...')}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.textBtn, isTextInputMode && { backgroundColor: '#f1f5f9' }]} 
+            onPress={() => setIsTextInputMode(!isTextInputMode)}
+          >
             <Ionicons name="chatbubble" size={24} color="#0f172a" />
-            <Text style={styles.actionText}>TEXT</Text>
+            <Text style={styles.actionText}>{isTextInputMode ? "CANCEL" : "TEXT"}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Translation Box */}
+        {/* Translation Box / Text Input */}
         <View style={styles.translationBox}>
-          <Text style={styles.translationLabel}>Translation of voice</Text>
-          <Text style={styles.translationValue}>{translation || '...' }</Text>
+          {isTextInputMode ? (
+            <View style={{ width: '100%' }}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Type your emergency here..."
+                placeholderTextColor="#94a3b8"
+                multiline
+                numberOfLines={3}
+                value={manualText}
+                onChangeText={setManualText}
+              />
+              <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
+                <Text style={styles.submitBtnText}>CLASSIFY TEXT</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.translationLabel}>Translation of voice</Text>
+              <Text style={styles.translationValue}>{translation || '...' }</Text>
+            </>
+          )}
         </View>
 
         {/* Services Grid */}
@@ -223,7 +266,27 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: '#ef4444', // Also red border here just in case this is what they meant
   },
   translationLabel: { fontSize: 16, color: '#475569', marginBottom: 8 },
-  translationValue: { fontSize: 20, fontWeight: '600', color: '#0f172a' },
+  translationValue: { fontSize: 20, fontWeight: '600', color: '#0f172a', textAlign: 'center' },
+  textInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#0f172a',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+    width: '100%',
+  },
+  submitBtn: {
+    backgroundColor: '#0f172a',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a', marginBottom: 16 },
   servicesGrid: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
