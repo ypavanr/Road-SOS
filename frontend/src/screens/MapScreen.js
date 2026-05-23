@@ -13,32 +13,45 @@ const FILTERS = [
   { id: 'trauma', name: 'Trauma', icon: 'heart-half', color: '#8b5cf6' },
 ];
 
-export default function MapScreen({ onBack }) {
+export default function MapScreen({ onBack, facilities = [] }) {
   const [location, setLocation] = useState(null);
   const [activeFilter, setActiveFilter] = useState('hospital');
   const [isFullScreen, setIsFullScreen] = useState(false);
   
-  // Dummy locations for top 5 nearby
-  const [facilities, setFacilities] = useState([]);
+  const [displayFacilities, setDisplayFacilities] = useState([]);
 
   useEffect(() => {
     (async () => {
       let loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
-      
-      // Generate some dummy facilities near user
-      if (loc.coords) {
-        const { latitude, longitude } = loc.coords;
-        setFacilities([
-          { id: 1, name: 'City General Hospital', distance: '0.8km', eta: '12 mins', lat: latitude + 0.005, lng: longitude + 0.005, open: true },
-          { id: 2, name: 'Metro Health Care', distance: '1.2km', eta: '18 mins', lat: latitude - 0.004, lng: longitude + 0.006, open: true },
-          { id: 3, name: 'Community Care', distance: '2.5km', eta: '25 mins', lat: latitude + 0.008, lng: longitude - 0.002, open: true },
-          { id: 4, name: 'St. Jude Center', distance: '3.1km', eta: '30 mins', lat: latitude - 0.007, lng: longitude - 0.005, open: true },
-          { id: 5, name: 'Sunrise Trauma', distance: '4.0km', eta: '35 mins', lat: latitude + 0.01, lng: longitude + 0.008, open: false },
-        ]);
-      }
     })();
   }, []);
+
+  useEffect(() => {
+    if (facilities && facilities.length > 0) {
+      // Map to dummy schema
+      const mapped = facilities.map((f, index) => ({
+        id: f.id || index.toString(),
+        name: f.name || 'Unknown Facility',
+        type: f.type || 'hospital',
+        distance: f.distance_km ? `${f.distance_km}km` : 'Unknown',
+        eta: f.eta_text || 'Unknown',
+        lat: f.lat,
+        lng: f.lon
+      }));
+
+      // Filter by active pill
+      const filtered = mapped.filter(f => {
+        if (activeFilter === 'hospital') return ['hospital', 'clinic'].includes(f.type);
+        if (activeFilter === 'police') return f.type === 'police';
+        if (activeFilter === 'fire') return f.type === 'fire_station';
+        if (activeFilter === 'trauma') return f.type === 'trauma_center';
+        return true;
+      });
+
+      setDisplayFacilities(filtered.slice(0, 5));
+    }
+  }, [facilities, activeFilter]);
 
   const { latitude, longitude } = location?.coords || { latitude: 37.78825, longitude: -122.4324 };
 
@@ -101,7 +114,7 @@ export default function MapScreen({ onBack }) {
             </Marker>
             
             {/* Facilities */}
-            {facilities.map(fac => (
+            {displayFacilities.map(fac => (
               <Marker key={fac.id} coordinate={{ latitude: fac.lat, longitude: fac.lng }}>
                 <View style={styles.facMarker}>
                   <Ionicons name="business" size={16} color="#fff" />
@@ -125,7 +138,7 @@ export default function MapScreen({ onBack }) {
       {!isFullScreen && (
         <ScrollView style={styles.listContainer}>
           <Text style={styles.listTitle}>Top 5 Nearest Facilities</Text>
-          {facilities.map(fac => (
+          {displayFacilities.map(fac => (
             <View key={fac.id} style={styles.facCard}>
               <View style={styles.facIconWrap}>
                 <Ionicons name="business" size={24} color="#ef4444" />
@@ -137,11 +150,6 @@ export default function MapScreen({ onBack }) {
                 </View>
               </View>
               <View style={styles.facRight}>
-                {fac.open ? (
-                  <View style={styles.openBadge}><Text style={styles.openText}>OPEN</Text></View>
-                ) : (
-                  <View style={styles.closedBadge}><Text style={styles.closedText}>CLOSED</Text></View>
-                )}
                 <TouchableOpacity style={styles.navBtn}>
                   <Ionicons name="navigate" size={16} color="#0f172a" />
                 </TouchableOpacity>

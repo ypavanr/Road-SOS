@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Dimensions } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { API_GATEWAY_URL } from '../../config';
+import { startRecording, stopRecording, uploadAudio } from '../services/audioService';
+import { sendSOSViaSMS } from '../services/smsService';
 
 const { width } = Dimensions.get('window');
 
@@ -16,10 +19,13 @@ const SERVICES = [
   { id: 'puncture', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
 ];
 
-export default function HomeScreen({ onNavigateToMap }) {
+export default function HomeScreen({ onNavigateToMap, setFacilities }) {
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [translation, setTranslation] = useState('');
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -36,6 +42,92 @@ export default function HomeScreen({ onNavigateToMap }) {
   }, []);
 
   const { latitude, longitude } = location?.coords || {};
+
+  const findNearby = async (lat, lon, classification) => {
+    try {
+      const bodyObj = { lat, lon, radius_m: 10000 };
+      if (classification?.patient_gender) {
+        bodyObj.patient_gender = classification.patient_gender;
+      }
+      const body = JSON.stringify(bodyObj);
+      const headers = { 'Content-Type': 'application/json' };
+
+      const [medicalRes, roadsideRes] = await Promise.allSettled([
+        fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
+        fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body })
+      ]);
+
+      let allFacilities = [];
+      if (medicalRes.status === 'fulfilled' && medicalRes.value.ok) {
+        const d = await medicalRes.value.json();
+        allFacilities = allFacilities.concat(d.facilities || []);
+      }
+      if (roadsideRes.status === 'fulfilled' && roadsideRes.value.ok) {
+        const d = await roadsideRes.value.json();
+        allFacilities = allFacilities.concat(d.facilities || []);
+      }
+      
+      setFacilities(allFacilities);
+    } catch (e) {
+      console.error("Failed to fetch nearby", e);
+    }
+  };
+
+  const handleClassify = async (textToClassify, lat, lon) => {
+    if (!textToClassify) return;
+    try {
+      const response = await fetch(`${API_GATEWAY_URL}/classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToClassify }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.is_emergency) {
+          findNearby(lat, lon, data);
+          if (location && location.coords) {
+            sendSOSViaSMS({
+              latitude: lat,
+              longitude: lon,
+              accuracy: location.coords.accuracy,
+              timestamp: location.coords.timestamp
+            }).catch(err => console.error("Auto SMS failed:", err));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Classification failed:", e);
+    }
+  };
+
+  const handleRecordSOS = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      const filePath = await stopRecording();
+      if (filePath) {
+        setLoading(true);
+        setTranslation('Analyzing audio...');
+        const result = await uploadAudio(filePath);
+        setLoading(false);
+        if (result.success) {
+          setTranslation(result.text);
+          if (latitude && longitude) {
+            handleClassify(result.text, latitude, longitude);
+          }
+        } else {
+          setTranslation('Transcription failed.');
+        }
+      }
+    } else {
+      setTranslation('Recording...');
+      const started = await startRecording();
+      if (started) {
+        setIsRecording(true);
+      } else {
+        setTranslation('Microphone permission denied.');
+      }
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,9 +146,13 @@ export default function HomeScreen({ onNavigateToMap }) {
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={[styles.actionBtn, styles.voiceBtn]} onPress={() => setTranslation('Voice recorded...')}>
-            <Ionicons name="mic" size={24} color="#fff" />
-            <Text style={[styles.actionText, { color: '#fff' }]}>VOICE</Text>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.voiceBtn, isRecording && { backgroundColor: '#7f1d1d' }]} 
+            onPress={handleRecordSOS}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name={isRecording ? "square" : "mic"} size={24} color="#fff" />}
+            <Text style={[styles.actionText, { color: '#fff' }]}>{isRecording ? "STOP" : "VOICE"}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.textBtn]} onPress={() => setTranslation('Text inputted...')}>
             <Ionicons name="chatbubble" size={24} color="#0f172a" />

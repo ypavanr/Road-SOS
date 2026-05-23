@@ -5,21 +5,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function RegistrationScreen({ onRegister }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [emergencyContactName, setEmergencyContactName] = useState('');
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
+  const [contacts, setContacts] = useState([{ name: '', phone: '' }]);
 
   const handleRegister = async () => {
-    if (!name || !phone || !emergencyContactName || !emergencyContactPhone) {
-      Alert.alert('Error', 'Please fill all fields');
+    // Validate basics
+    if (!name || !phone) {
+      Alert.alert('Error', 'Please fill in your name and phone');
+      return;
+    }
+
+    // Filter out empty contacts
+    const validContacts = contacts.filter(c => c.name.trim() !== '' && c.phone.trim() !== '');
+    if (validContacts.length === 0) {
+      Alert.alert('Error', 'Please add at least one valid emergency contact');
       return;
     }
 
     const userData = {
       name,
       phone,
-      emergencyContacts: [
-        { name: emergencyContactName, phone: emergencyContactPhone }
-      ]
+      emergencyContacts: validContacts
     };
 
     try {
@@ -46,17 +51,46 @@ export default function RegistrationScreen({ onRegister }) {
           <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+1 234 567 8900" keyboardType="phone-pad" />
         </View>
 
-        <Text style={styles.sectionTitle}>Emergency Contact</Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Contact Name</Text>
-          <TextInput style={styles.input} value={emergencyContactName} onChangeText={setEmergencyContactName} placeholder="Jane Doe" />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 16 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a' }}>Emergency Contacts</Text>
+          <TouchableOpacity onPress={() => setContacts([...contacts, { name: '', phone: '' }])}>
+            <Text style={{ color: '#2563eb', fontWeight: '700' }}>+ Add More</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Contact Phone Number</Text>
-          <TextInput style={styles.input} value={emergencyContactPhone} onChangeText={setEmergencyContactPhone} placeholder="+1 987 654 3210" keyboardType="phone-pad" />
-        </View>
+        {contacts.map((contact, index) => (
+          <View key={index} style={{ marginBottom: 16, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, backgroundColor: '#f8fafc' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={styles.label}>Contact {index + 1}</Text>
+              {contacts.length > 1 && (
+                <TouchableOpacity onPress={() => setContacts(contacts.filter((_, i) => i !== index))}>
+                  <Text style={{ color: '#ef4444', fontWeight: '600' }}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput 
+              style={[styles.input, { marginBottom: 8 }]} 
+              value={contact.name} 
+              onChangeText={(text) => {
+                const newC = [...contacts];
+                newC[index].name = text;
+                setContacts(newC);
+              }} 
+              placeholder="Jane Doe" 
+            />
+            <TextInput 
+              style={styles.input} 
+              value={contact.phone} 
+              onChangeText={(text) => {
+                const newC = [...contacts];
+                newC[index].phone = text;
+                setContacts(newC);
+              }} 
+              placeholder="+1 987 654 3210" 
+              keyboardType="phone-pad" 
+            />
+          </View>
+        ))}
 
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Register & Save</Text>

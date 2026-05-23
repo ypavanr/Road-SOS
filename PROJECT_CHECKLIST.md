@@ -11,6 +11,8 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Nearby Facilities**: Geolocation-based retrieval of nearby hospitals, trauma centers, and roadside assistance.
 - [x] **SOS Microservice**: Dedicated `sos-service` backend to manage secure Telegram dispatch and configuration.
 - [x] **Alert Dispatch**: Fully functional Telegram dispatching and native SMS composer integration.
+- [x] **Classification of Male or Female**: Accordingly the emergency services changed
+- [x] **Classification of Victim or Bystander**: For now functionality available in the backend
 
 ---
 
@@ -24,11 +26,12 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 ### ⚙️ Dispatch Logic & Overrides
 - [ ] **Manual Override for SMS Classification**: Allow the user to explicitly define if they are the **Victim** or a **Bystander** before dispatching.
-Classification of Male or Female if mentioned and accordingly the emergency services available should be appropriate.
+(Messaging sms still left...)
   - *Assignee:* [ Vibha ]
 - [ ] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
   - *Assignee:* [ Vibha ]
   - [ ] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
+  (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
 
 ### 📡 Advanced Offline / Peer-to-Peer SOS
@@ -46,7 +49,7 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
 
 *Use this section to declare who is currently working on what. Update the assignees above as work begins.*
 
-- Vibha: Classifier, Bluetooth Relay, SMS Override, Trauma Specific SMS
+- Vibha: Bluetooth Relay, SMS Override, Trauma Specific SMS
 - Tanish: Maps UI Explanation, Timer fallback   SOS
 - Pavan: Maps API, Path Optimization
 - Sangam: Maps API, Path Optimization
