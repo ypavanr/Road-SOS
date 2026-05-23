@@ -37,6 +37,17 @@ const SERVICES = [
   { id: 'tyre', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
 ];
 
+const SERVICE_TO_PHONE = {
+  trauma: '+91 7259654930',
+  ambulance: '+91 7259654930',
+  hospital: '+91 8722273804',
+  fuel: '+91 8722273804',
+  police: '+91 7892978757',
+  towing: '+91 7892978757',
+  fire: '+91 6360843513',
+  tyre: '+91 6360843513',
+};
+
 const SERVICE_LABEL = {
   hospital: 'Hospital',
   trauma_center: 'Trauma Center',
@@ -410,10 +421,39 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     }
   };
 
-  // ── Manual service card tap → navigate directly ───────────────
+  // ── Manual service card tap → navigate directly and send SMS ───────────────
   const handleServiceTap = async (serviceId) => {
     clearEmergency();
     setSelectedService(serviceId);
+
+    // Fetch current location coordinates
+    let currentLoc = location;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        currentLoc = await Location.getCurrentPositionAsync({});
+        setLocation(currentLoc);
+      }
+    } catch (e) {
+      console.error("Failed to get location dynamically in handleServiceTap:", e);
+    }
+
+    // Automatically send SOS SMS to the mapped number for the clicked service
+    const targetPhone = SERVICE_TO_PHONE[serviceId];
+    if (targetPhone && currentLoc?.coords) {
+      sendSOSViaSMS(
+        { 
+          latitude: currentLoc.coords.latitude, 
+          longitude: currentLoc.coords.longitude, 
+          accuracy: currentLoc.coords.accuracy || 0,
+          timestamp: currentLoc.timestamp || Date.now()
+        },
+        userData,
+        [targetPhone],
+        'bystander' // Ensures it only goes to the target service number, not emergency contacts
+      ).catch((err) => console.error('Service manual SMS failed:', err));
+    }
+
     if (preloadPromiseRef.current) {
        setContextLoadingMsg('Waiting for preloaded data...');
        await preloadPromiseRef.current;
