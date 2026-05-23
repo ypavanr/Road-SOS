@@ -41,12 +41,12 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 
 ### ⚙️ Dispatch Logic & Overrides
-- [ ] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
+- [x] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
   - *Assignee:* [ Vibha ]
 - [ ] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
-- [ ] **Role-Based SMS Routing**: If Victim -> send SMS to trauma center, general (police/fire/all ppl nearb), and emergency contacts. If Bystander -> send SMS to trauma center and general, but NOT emergency contacts.
+- [x] **Role-Based SMS Routing**: If Victim -> send SMS to trauma center, general (police/fire/all ppl nearb), and emergency contacts. If Bystander -> send SMS to trauma center and general, but NOT emergency contacts.
 (Except trauma centre finish everything else)
   - *Assignee:* [ Tanish,Vibha ]
 

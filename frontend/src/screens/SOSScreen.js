@@ -160,7 +160,17 @@ export default function SOSScreen() {
         await sendLocationPin(data);
         return r;
       })(),
-      sendSOSViaSMS(data),
+      sendSOSViaSMS(
+        data,
+        null,
+        [
+          '+91 7259654930',
+          '+91 8722273804',
+          '+91 7892978757',
+          '+91 6360843513'
+        ],
+        'victim'
+      ),
     ]);
 
     // Telegram

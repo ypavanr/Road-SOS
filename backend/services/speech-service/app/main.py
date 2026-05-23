@@ -5,10 +5,20 @@ from app.services.whisper_service import load_whisper_model
 import logging
 import os
 
-# Dynamically inject FFmpeg path so we don't need a VSCode/system restart
-ffmpeg_path = r"C:\Users\sanga\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin"
-if ffmpeg_path not in os.environ.get("PATH", ""):
-    os.environ["PATH"] += os.pathsep + ffmpeg_path
+# Dynamically locate and inject FFmpeg path if not already in system PATH
+import shutil
+if not shutil.which("ffmpeg"):
+    user_home = os.path.expanduser("~")
+    winget_ffmpeg_dir = os.path.join(
+        user_home,
+        r"AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe"
+    )
+    if os.path.exists(winget_ffmpeg_dir):
+        for root_dir, dirs, files in os.walk(winget_ffmpeg_dir):
+            if "ffmpeg.exe" in files:
+                if root_dir not in os.environ.get("PATH", ""):
+                    os.environ["PATH"] += os.pathsep + root_dir
+                break
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

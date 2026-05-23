@@ -19,6 +19,7 @@ import {
   useEmergency,
   getPrimaryFacilityType,
   facilityTypeToFilter,
+  rankFacility,
 } from '../context/EmergencyContext';
 
 const { width } = Dimensions.get('window');
@@ -210,6 +211,18 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     }
   }, [setFacilities]);
 
+  // Mapping of category filters to their respective dummy authority phone numbers
+  const FILTER_TO_AUTHORITY = {
+    trauma: '+91 7259654930',
+    hospital: '+91 8722273804',
+    ambulance: '+91 8722273804',
+    police: '+91 7892978757',
+    fire: '+91 6360843513',
+    towing: '+91 7892978757',
+    tyre: '+91 7892978757',
+    fuel: '+91 7892978757',
+  };
+
   // ── Act on a confirmed (or high-confidence) classification ────
   const applyClassification = useCallback(
     async (data, lat, lon) => {
@@ -234,14 +247,84 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
          }
       }
 
+      let updatedFacilities = currentFacilities;
       if (missingTypes.length > 0) {
-         await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities);
+         const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities);
+         if (fetched && fetched.length > 0) {
+           updatedFacilities = fetched;
+         }
       }
 
-      if (data.user_role === 'victim' && location?.coords && userData) {
+      // Collect all relevant authority and trauma center numbers
+      const authorityNumbers = [];
+      const requiredTypes = data.specific_facilities || [];
+      const matchedNearby = updatedFacilities.filter(f => requiredTypes.includes(f.type));
+
+      const traumaCenters = matchedNearby.filter(f => f.type === 'trauma_center');
+      const hospitals = matchedNearby.filter(f => f.type === 'hospital' || f.type === 'clinic');
+      const policeStations = matchedNearby.filter(f => f.type === 'police');
+      const fireStations = matchedNearby.filter(f => f.type === 'fire_station');
+
+      const rankAndSort = (list, fId) => {
+        return list
+          .map(f => ({ facility: f, score: rankFacility(f, fId) }))
+          .sort((a, b) => b.score - a.score)
+          .map(item => item.facility);
+      };
+
+      const sortedTraumas = rankAndSort(traumaCenters, 'trauma');
+      const sortedHospitals = rankAndSort(hospitals, 'hospital');
+      const sortedPolice = rankAndSort(policeStations, 'police');
+      const sortedFire = rankAndSort(fireStations, 'fire');
+
+      // Trauma centers pool of dummy numbers
+      const traumaDummyPool = [
+        '+91 7259654930', // Primary trauma center
+        '+91 8722273804', // Fallback/reused from hospital
+        '+91 7892978757', // Fallback/reused from police
+        '+91 6360843513'  // Fallback/reused from fire
+      ];
+
+      if (sortedTraumas.length > 0) {
+        // Send to all trauma centers involved
+        sortedTraumas.forEach((facility, index) => {
+          const dummyNum = traumaDummyPool[index % traumaDummyPool.length];
+          authorityNumbers.push(dummyNum);
+        });
+      } else if (requiredTypes.includes('trauma_center')) {
+        authorityNumbers.push('+91 7259654930');
+      }
+
+      // Hospital numbers
+      if (sortedHospitals.length > 0) {
+        authorityNumbers.push('+91 8722273804');
+      } else if (requiredTypes.includes('hospital') || requiredTypes.includes('clinic') || requiredTypes.includes('ambulance')) {
+        authorityNumbers.push('+91 8722273804');
+      }
+
+      // Police numbers
+      if (sortedPolice.length > 0) {
+        authorityNumbers.push('+91 7892978757');
+      } else if (requiredTypes.includes('police') || requiredTypes.includes('towing') || requiredTypes.includes('roadside_assistance')) {
+        authorityNumbers.push('+91 7892978757');
+      }
+
+      // Fire numbers
+      if (sortedFire.length > 0) {
+        authorityNumbers.push('+91 6360843513');
+      } else if (requiredTypes.includes('fire_station')) {
+        authorityNumbers.push('+91 6360843513');
+      }
+
+      // Remove duplicates
+      const uniqueAuthorityNumbers = [...new Set(authorityNumbers)];
+
+      if (location?.coords) {
         sendSOSViaSMS(
           { latitude: lat, longitude: lon, accuracy: location.coords.accuracy },
           userData,
+          uniqueAuthorityNumbers,
+          data.user_role || 'victim'
         ).catch((err) => console.error('Auto SMS failed:', err));
       }
 
