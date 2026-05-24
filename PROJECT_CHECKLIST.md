@@ -16,29 +16,19 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Emegency Contact Feature**: Multiple registartions of contacts and removal of hardcoded contact dependency for emergency contact sms
 - [x] **Maps Display**: Maps displayed immediately on load, irrespective of voice input.
 - [x] **Text input box**: Dynamic UI toggle for manual text emergency classification.
-- [ ] **Maps Integration**: Implement live map view/routing on the frontend.
-  - *Assignee:* [ Pavan,Sangam ]
-- [ ] **Path Optimization**: Optimize the routing and path to nearby facilities after maps integration.
-  - *Assignee:* [ Pavan,Sangam ]
-- [ ] **UI Scroll for Register Page**: Implement proper scrolling behavior on the registration screen so all dynamic inputs are accessible.
-  - *Assignee:* [ Tanish ]
-- [ ] **Expanded Registration Info**: Ask the user for Home Address, Work Address, Working Profession, and fetch latitude/longitude coordinates for these addresses if possible.
-  - *Assignee:* [ Tanish ]
-- [ ] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
-  - *Assignee:* [ Pavan,Sangam ]
-- [ ]**AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
+- [x] **Maps Integration**: Implement live map view/routing on the frontend.
+- [x] **Path Optimization**: Optimize the routing and path to nearby facilities after maps integration.
+- [x] **UI Scroll for Register Page**: Implement proper scrolling behavior on the registration screen so all dynamic inputs are accessible.
+- [x] **Expanded Registration Info**: Ask the user for Home Address, Work Address, Working Profession, and fetch latitude/longitude coordinates for these addresses if possible.
+- [x] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
+- [x]**AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
 ---
 
 ## 🚧 Remaining Tasks
 
 ### 🗺️ Navigation & UI
 
-
-
-
 ### 📝 Registration & Profiles
-
-
 
 ### ⚙️ Dispatch Logic & Overrides
 - [x] **Trauma Specific SMS**: Trigger customized SMS messages directly to hardcoded trauma center/hospital mobile numbers based on the classification.
@@ -78,7 +68,7 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
 
 *Use this section to declare who is currently working on what. Update the assignees above as work begins.*
 
-- Vibha: Bluetooth Relay, SMS Override, Trauma Specific SMS
-- Tanish: Maps UI Explanation, Timer fallback   SOS
-- Pavan: Maps API, Path Optimization
-- Sangam: Maps API, Path Optimization
+- Vibha: Bluetooth Relay, SMS Override, 112, Classification, Images, Telegram, User based sms
+- Tanish: Bluetooth Fallback + Local storage + Registration debug
+- Pavan: Bluetooth Fallback + Local storage
+- Sangam: Bluetooth Fallback + Local storage
