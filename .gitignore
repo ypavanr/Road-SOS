@@ -28,3 +28,6 @@ backend/**/.env
 # Cache databases
 backend/**/cache/*.db
 venv
+# Uploads
+backend/api-gateway/uploads/
+

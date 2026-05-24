@@ -2,8 +2,6 @@ import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_GATEWAY_URL } from '../../config';
 
-import * as FileSystem from 'expo-file-system';
-
 const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) => {
   const time = new Date(timestamp || Date.now()).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -64,34 +62,112 @@ export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = 
     throw new Error('No valid SMS numbers provided for the emergency alert.');
   }
 
-  const body = buildSMSBody(locationData, activeUserData || {});
+  let body = buildSMSBody(locationData, activeUserData || {});
 
-  const options = {};
   if (attachmentUri) {
-    let contentUri = attachmentUri;
-    if (attachmentUri.startsWith('file://')) {
-      try {
-        contentUri = await FileSystem.getContentUriAsync(attachmentUri);
-      } catch (e) {
-        console.error("Failed to convert file URI to content URI:", e);
-      }
+    try {
+      const photoUrl = await uploadAttachment(attachmentUri);
+      body += `\n\n📷 Incident Photo:\n${photoUrl}`;
+    } catch (e) {
+      console.error("Failed to upload attachment to backend:", e);
+      body += `\n\n📷 (Photo captured but failed to upload to link)`;
     }
-    const filename = attachmentUri.split('/').pop() || 'photo.jpg';
-    let mimeType = 'image/jpeg';
-    if (filename.toLowerCase().endsWith('.png')) {
-      mimeType = 'image/png';
-    } else if (filename.toLowerCase().endsWith('.gif')) {
-      mimeType = 'image/gif';
-    }
-    options.attachments = {
-      uri: contentUri,
-      mimeType,
-      filename,
-    };
   }
 
-  const { result } = await SMS.sendSMSAsync(validNumbers, body, options);
+  const { result } = await SMS.sendSMSAsync(validNumbers, body);
   return { result };
 };
 
+const uploadAttachment = async (uri) => {
+  const filename = uri.split('/').pop() || 'photo.jpg';
+  let mimeType = 'image/jpeg';
+  if (filename.toLowerCase().endsWith('.png')) {
+    mimeType = 'image/png';
+  } else if (filename.toLowerCase().endsWith('.gif')) {
+    mimeType = 'image/gif';
+  }
 
+  // 1. Try Catbox.moe (primary reliable public host)
+  try {
+    const formData = new FormData();
+    formData.append("reqtype", "fileupload");
+    formData.append("fileToUpload", {
+      uri: uri,
+      name: filename,
+      type: mimeType,
+    });
+
+    const response = await fetch("https://catbox.moe/user/api.php", {
+      method: "POST",
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.ok) {
+      const url = await response.text();
+      if (url.startsWith('http')) {
+        return url.trim();
+      }
+    }
+  } catch (e) {
+    console.warn("Catbox upload failed, trying fallback...", e);
+  }
+
+  // 2. Try 0x0.st (secondary public host)
+  try {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uri,
+      name: filename,
+      type: mimeType,
+    });
+
+    const response = await fetch('https://0x0.st', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.ok) {
+      const url = await response.text();
+      if (url.startsWith('http')) {
+        return url.trim();
+      }
+    }
+  } catch (e) {
+    console.warn("0x0.st upload failed, trying local upload fallback...", e);
+  }
+
+  // 3. Try Local server (LAN backup)
+  try {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uri,
+      name: filename,
+      type: mimeType,
+    });
+
+    const response = await fetch(`${API_GATEWAY_URL}/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        return data.url || data.file_url;
+      }
+    }
+  } catch (e) {
+    console.error("All upload channels failed:", e);
+  }
+
+  throw new Error("Unable to upload image to any hosting service");
+};

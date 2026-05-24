@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   Vibration, ScrollView, Dimensions, Platform,
-  StatusBar, ActivityIndicator,
+  StatusBar, ActivityIndicator, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getLocationData } from '../services/locationService';
 import { sendSOSViaTelegram, sendLocationPin } from '../services/telegramService';
 import { sendSOSViaSMS } from '../services/smsService';
+import { selectPhotoSource } from '../services/photoPickerService';
 import { COUNTDOWN_SECONDS } from '../config/config';
 import { API_GATEWAY_URL } from '../../config';
 
@@ -53,6 +54,7 @@ export default function SOSScreen() {
   const [log,          setLog]          = useState([]);
   const [channels,     setChannels]     = useState({ telegram: 'idle', sms: 'idle' });
   const [userInfo,     setUserInfo]     = useState({ name: 'Loading...', phone: '...' });
+  const [photoUri,     setPhotoUri]     = useState(null);
 
   useEffect(() => {
     fetch(`${API_GATEWAY_URL}/sos/config`)
@@ -100,6 +102,19 @@ export default function SOSScreen() {
 
   const addLog = (msg) =>
     setLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+
+  const handleAddPhoto = async () => {
+    const uri = await selectPhotoSource();
+    if (uri) {
+      setPhotoUri(uri);
+      addLog('📷 Photo attached to SOS message');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUri(null);
+    addLog('📷 Photo removed from SOS message');
+  };
 
   const cancelSOS = () => {
     clearInterval(countdownRef.current);
@@ -156,7 +171,7 @@ export default function SOSScreen() {
 
     const [telegramResult, smsResult] = await Promise.allSettled([
       (async () => {
-        const r = await sendSOSViaTelegram(data);
+        const r = await sendSOSViaTelegram(data, photoUri);
         await sendLocationPin(data);
         return r;
       })(),
@@ -169,7 +184,8 @@ export default function SOSScreen() {
           '+91 7892978757',
           '+91 6360843513'
         ],
-        'victim'
+        'victim',
+        photoUri
       ),
     ]);
 
@@ -219,6 +235,7 @@ export default function SOSScreen() {
     setStatus(STATUS.IDLE);
     setErrorMsg('');
     setChannels({ telegram: 'idle', sms: 'idle' });
+    setPhotoUri(null);
   };
 
   // ── Derived UI ────────────────────────────────────────────────
@@ -256,6 +273,34 @@ export default function SOSScreen() {
             <ChannelBadge icon="paper-plane-outline" label="TG"  state={channels.telegram} />
             <ChannelBadge icon="chatbox-outline"     label="SMS" state={channels.sms} />
           </View>
+        )}
+      </View>
+
+      {/* Photo Attachment Section */}
+      <View style={s.photoSection}>
+        {photoUri ? (
+          <View style={s.photoContainer}>
+            <Image source={{ uri: photoUri }} style={s.photoThumbnail} />
+            <View style={s.photoOverlay}>
+              <TouchableOpacity
+                style={s.removePhotoBtn}
+                onPress={handleRemovePhoto}
+                disabled={isSending || isCountdown}
+              >
+                <Ionicons name="close-circle" size={24} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.photoLabel}>📷 Photo attached</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={s.addPhotoBtn}
+            onPress={handleAddPhoto}
+            disabled={isSending || isCountdown}
+          >
+            <Ionicons name="camera" size={24} color="#666" />
+            <Text style={s.addPhotoText}>Add photo</Text>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -381,6 +426,54 @@ const s = StyleSheet.create({
   userName: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   userSub:  { color: '#666', fontSize: 12, marginTop: 2 },
   channelRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 },
+
+  photoSection: {
+    width: width - 44,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  addPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.07)',
+    borderColor: 'rgba(239,68,68,0.2)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  addPhotoText: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  photoContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  photoThumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: '#1C1C1C',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+  removePhotoBtn: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  photoLabel: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '500',
+  },
 
   btnWrapper: {
     width: R * 2 + 80, height: R * 2 + 80,

@@ -1,9 +1,20 @@
 import os
+import shutil
+import uuid
+import base64
 from fastapi import FastAPI, Request, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from typing import Optional
 import httpx
 
 app = FastAPI(title="Road SOS API Gateway", version="1.0.0")
+
+UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,6 +23,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Pydantic model for base64 file upload
+class Base64FileUpload(BaseModel):
+    file: str
+    filename: str
+    mimeType: str
 
 PORT = int(os.environ.get("PORT", 8000))
 
@@ -100,6 +117,64 @@ async def transcribe(file: UploadFile = File(...)):
         except httpx.RequestError as exc:
             return Response(status_code=502, content=f'{{"error": "Bad Gateway: {exc}"}}', media_type="application/json")
 
+@app.post("/upload")
+async def upload_file(request: Request):
+    """Handle both multipart form-data and JSON base64 file uploads"""
+    content_type = request.headers.get("content-type", "")
+    
+    try:
+        if "application/json" in content_type:
+            # Handle JSON base64 upload
+            body = await request.json()
+            data = Base64FileUpload(**body)
+            
+            # Decode base64
+            file_data = base64.b64decode(data.file)
+            
+            # Determine file extension
+            ext = os.path.splitext(data.filename)[1]
+            if not ext:
+                if "png" in data.mimeType:
+                    ext = ".png"
+                elif "gif" in data.mimeType:
+                    ext = ".gif"
+                else:
+                    ext = ".jpg"
+            
+            unique_filename = f"{uuid.uuid4().hex}{ext}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            
+            with open(file_path, "wb") as f:
+                f.write(file_data)
+        else:
+            # Handle multipart form-data upload (legacy)
+            form = await request.form()
+            file = form.get("file")
+            
+            if not file or not file.filename:
+                return {"success": False, "error": "No file uploaded"}
+            
+            ext = os.path.splitext(file.filename)[1]
+            if not ext:
+                ext = ".jpg"
+            
+            unique_filename = f"{uuid.uuid4().hex}{ext}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        
+        host = request.headers.get("host", f"localhost:8000")
+        url = f"http://{host}/uploads/{unique_filename}"
+        return {
+            "success": True,
+            "url": url,
+            "file_url": url
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
+

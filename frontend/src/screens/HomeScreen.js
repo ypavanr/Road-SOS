@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   SafeAreaView,
   ScrollView,
@@ -442,60 +443,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   };
 
   // ── Manual service card tap → navigate directly and send SMS ───────────────
-  // Helper to handle service tap with optional camera or gallery attachment
-  const handleServiceTapWithPhoto = async (serviceId, photoSource) => {
-    clearEmergency();
-    setSelectedService(serviceId);
-
-    let photoUri = null;
-
-    if (photoSource === 'camera') {
-      try {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Camera permission is required to take photos in an emergency.');
-          return;
-        }
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          quality: 0.7,
-        });
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          photoUri = result.assets[0].uri;
-        } else {
-          // User cancelled camera, abort sending
-          return;
-        }
-      } catch (e) {
-        console.error("Camera error:", e);
-        Alert.alert("Camera Error", "Could not open camera.");
-        return;
-      }
-    } else if (photoSource === 'gallery') {
-      try {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Media library permission is required to choose photos.');
-          return;
-        }
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.7,
-        });
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          photoUri = result.assets[0].uri;
-        } else {
-          // User cancelled gallery selection, abort sending
-          return;
-        }
-      } catch (e) {
-        console.error("Gallery error:", e);
-        Alert.alert("Gallery Error", "Could not select photo.");
-        return;
-      }
-    }
-
-    // Fetch current location coordinates
+  const dispatchServiceSMS = async (serviceId, attachmentUri = null) => {
     let currentLoc = location;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -504,10 +452,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         setLocation(currentLoc);
       }
     } catch (e) {
-      console.error("Failed to get location dynamically in handleServiceTap:", e);
+      console.error("Failed to get location dynamically in dispatchServiceSMS:", e);
     }
 
-    // Automatically send SOS SMS to the mapped number for the clicked service
     const targetPhone = SERVICE_TO_PHONE[serviceId];
     if (targetPhone && currentLoc?.coords) {
       sendSOSViaSMS(
@@ -519,10 +466,90 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         },
         userData,
         [targetPhone],
-        'bystander', // Ensures it only goes to the target service number, not emergency contacts
-        photoUri
+        'bystander',
+        attachmentUri
       ).catch((err) => console.error('Service manual SMS failed:', err));
     }
+  };
+
+  const handlePhotoSelection = async (serviceId, type) => {
+    try {
+      if (type === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Camera permissions are required to take an incident photo.');
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+        });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          await dispatchServiceSMS(serviceId, result.assets[0].uri);
+        } else {
+          Alert.alert(
+            'No Photo Captured',
+            'Send the SOS message without a photo?',
+            [
+              { text: 'Yes, Send Text Only', onPress: () => dispatchServiceSMS(serviceId, null) },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Gallery permissions are required to choose an incident photo.');
+          return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+        });
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          await dispatchServiceSMS(serviceId, result.assets[0].uri);
+        } else {
+          Alert.alert(
+            'No Photo Selected',
+            'Send the SOS message without a photo?',
+            [
+              { text: 'Yes, Send Text Only', onPress: () => dispatchServiceSMS(serviceId, null) },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+        }
+      }
+    } catch (e) {
+      console.error("Error picking image:", e);
+      Alert.alert('Error', 'An error occurred while getting the photo. Sending text-only SOS...');
+      await dispatchServiceSMS(serviceId, null);
+    }
+  };
+
+  const handleServiceTap = async (serviceId) => {
+    clearEmergency();
+    setSelectedService(serviceId);
+
+    // Prompt user for attaching photo
+    Alert.alert(
+      'Attach Incident Photo',
+      'Would you like to capture or select a photo of the incident to send to the trauma centre?',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => handlePhotoSelection(serviceId, 'camera'),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => handlePhotoSelection(serviceId, 'gallery'),
+        },
+        {
+          text: 'Send Text Only',
+          onPress: () => dispatchServiceSMS(serviceId, null),
+        },
+      ],
+      { cancelable: true }
+    );
 
     if (preloadPromiseRef.current) {
        setContextLoadingMsg('Waiting for preloaded data...');
@@ -530,33 +557,6 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
        setContextLoadingMsg(null);
     }
     onNavigateToMap();
-  };
-
-  // ── Manual service card tap → Ask to take/attach photo ───────────────
-  const handleServiceTap = async (serviceId) => {
-    Alert.alert(
-      "Attach Photo?",
-      "Would you like to take a photo or attach an image to send with your emergency request?",
-      [
-        {
-          text: "Take Photo (Camera)",
-          onPress: () => handleServiceTapWithPhoto(serviceId, 'camera')
-        },
-        {
-          text: "Choose from Gallery",
-          onPress: () => handleServiceTapWithPhoto(serviceId, 'gallery')
-        },
-        {
-          text: "Skip (Send SMS)",
-          onPress: () => handleServiceTapWithPhoto(serviceId, 'skip')
-        },
-        {
-          text: "Cancel",
-          style: "cancel"
-        }
-      ],
-      { cancelable: true }
-    );
   };
 
   // ── Low-confidence confirmation handlers ──────────────────────
