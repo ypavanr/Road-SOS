@@ -319,6 +319,25 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
          }
       }
 
+      // Auto-Dispatch SMS based on AI classification
+      const targetPhones = [];
+      const reqFacilities = data.specific_facilities || [];
+      reqFacilities.forEach(fac => {
+        const phone = SERVICE_TO_PHONE[fac] || SERVICE_TO_PHONE[facilityTypeToFilter(fac)];
+        if (phone) targetPhones.push(phone);
+      });
+
+      if (targetPhones.length > 0 || data.user_role === 'victim') {
+        sendSOSViaSMS(
+          { latitude: lat, longitude: lon, accuracy: 0, timestamp: Date.now() },
+          userData,
+          targetPhones,
+          data.user_role || 'victim',
+          data.explanation || 'Emergency classified by AI',
+          null
+        ).catch((err) => console.error('AI automatic SMS failed:', err));
+      }
+
       onNavigateToMap();
     },
     [setClassification, setSelectedService, setIsEmergencyMode, incrementalFetchFacilities, location, userData, onNavigateToMap, facilities],
