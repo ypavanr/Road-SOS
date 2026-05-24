@@ -2,7 +2,7 @@ import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_GATEWAY_URL } from '../../config';
 
-const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) => {
+const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo, customText) => {
   const time = new Date(timestamp || Date.now()).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: '2-digit', month: 'short', year: 'numeric',
@@ -11,18 +11,22 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) =>
 
   const mapsLink = `https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
 
-  return (
-    `🚨 SOS EMERGENCY ALERT 🚨\n` +
-    `Person: ${userInfo.name || 'Unknown'}\n` +
+  let body = `🚨 SOS EMERGENCY ALERT 🚨\n`;
+  if (customText) {
+    body += `Message: "${customText}"\n\n`;
+  }
+  
+  body += `Person: ${userInfo.name || 'Unknown'}\n` +
     `Phone: ${userInfo.phone || 'Unknown'}\n\n` +
     `📍 Location (±${Math.round(accuracy || 0)}m):\n` +
     `${mapsLink}\n\n` +
     `🕐 Time: ${time} IST\n\n` +
-    `PLEASE RESPOND IMMEDIATELY.`
-  );
+    `PLEASE RESPOND IMMEDIATELY.`;
+
+  return body;
 };
 
-export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = [], userRole = 'victim', attachmentUri = null) => {
+export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = [], userRole = 'victim', customText = null, audioPath = null, attachmentUri = null) => {
   const isAvailable = await SMS.isAvailableAsync();
   if (!isAvailable) {
     throw new Error('SMS is not available on this device.');
@@ -62,7 +66,7 @@ export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = 
     throw new Error('No valid SMS numbers provided for the emergency alert.');
   }
 
-  let body = buildSMSBody(locationData, activeUserData || {});
+  let body = buildSMSBody(locationData, activeUserData || {}, customText);
 
   if (attachmentUri) {
     try {
@@ -74,7 +78,30 @@ export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = 
     }
   }
 
-  const { result } = await SMS.sendSMSAsync(validNumbers, body);
+  const options = {};
+  if (audioPath) {
+    let finalUri = audioPath.startsWith('file://') ? audioPath : `file://${audioPath}`;
+    
+    // On Android, sending file:// URIs to external apps causes FileUriExposedException.
+    // We must convert it to a content:// URI using expo-file-system/legacy.
+    try {
+      if (require('react-native').Platform.OS === 'android') {
+        const FileSystemLegacy = require('expo-file-system/legacy');
+        const contentUri = await FileSystemLegacy.getContentUriAsync(finalUri);
+        if (contentUri) finalUri = contentUri;
+      }
+    } catch (e) {
+      console.error("Failed to generate content URI for audio attachment:", e);
+    }
+
+    options.attachments = {
+      uri: finalUri,
+      mimeType: 'audio/m4a',
+      filename: 'emergency_audio.m4a',
+    };
+  }
+
+  const { result } = await SMS.sendSMSAsync(validNumbers, body, options);
   return { result };
 };
 

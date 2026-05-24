@@ -59,30 +59,31 @@ export const uploadAudio = async (filePath) => {
   
   try {
     console.log('Uploading audio from:', filePath);
+    
+    let FileSystem;
+    try {
+      FileSystem = require('expo-file-system/legacy');
+    } catch(e) {
+      FileSystem = require('expo-file-system');
+    }
 
-    const formData = new FormData();
-    formData.append('file', {
-      uri: filePath.startsWith('file://') ? filePath : `file://${filePath}`,
-      name: 'emergency_audio.m4a',
-      type: 'audio/m4a',
+    const finalUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+
+    const response = await FileSystem.uploadAsync(`${API_GATEWAY_URL}/transcribe`, finalUri, {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType ? FileSystem.FileSystemUploadType.MULTIPART : 2,
+      fieldName: 'file',
+      mimeType: 'audio/m4a',
     });
 
-    const response = await fetch(`${API_GATEWAY_URL}/transcribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
+    if (response.status !== 200) {
       throw new Error(`Upload failed with status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(response.body);
     return data;
   } catch (error) {
     console.error('Upload error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || 'Upload failed' };
   }
 };

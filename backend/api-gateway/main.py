@@ -2,7 +2,7 @@ import os
 import shutil
 import uuid
 import base64
-from fastapi import FastAPI, Request, Response, UploadFile, File
+from fastapi import FastAPI, Request, Response, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -15,6 +15,16 @@ UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+@app.websocket("/ws/ping")
+async def websocket_ping(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        pass
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,7 +113,8 @@ async def classify(request: Request):
 async def transcribe(file: UploadFile = File(...)):
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            files = {'file': (file.filename, file.file, file.content_type)}
+            file_content = await file.read()
+            files = {'file': (file.filename, file_content, file.content_type)}
             response = await client.post(
                 f"{SPEECH_SERVICE_URL}/transcribe",
                 files=files

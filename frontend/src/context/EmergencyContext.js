@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
+import { getCachedFacilities } from '../services/cacheService';
 
 const EmergencyContext = createContext(null);
 
@@ -23,6 +24,21 @@ export function EmergencyProvider({ children }) {
 
   // Contextual loading message shown during async operations
   const [loadingMessage, setLoadingMessage] = useState(null);
+
+  // Offline architecture states
+  const [isOffline, setIsOffline] = useState(false);
+  const [cachedFacilities, setCachedFacilities] = useState([]);
+
+  // Auto-load cache when offline
+  useEffect(() => {
+    if (isOffline) {
+      getCachedFacilities().then(facs => {
+         setCachedFacilities(facs);
+         // Also push them into general facilities so MapScreen can render them
+         setFacilities(facs);
+      });
+    }
+  }, [isOffline]);
 
   const clearEmergency = useCallback(() => {
     setClassification(null);
@@ -50,6 +66,10 @@ export function EmergencyProvider({ children }) {
         setIsEmergencyMode,
         loadingMessage,
         setLoadingMessage,
+        isOffline,
+        setIsOffline,
+        cachedFacilities,
+        setCachedFacilities,
         clearEmergency,
       }}
     >

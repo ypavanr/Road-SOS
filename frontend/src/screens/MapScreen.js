@@ -536,14 +536,24 @@ export default function MapScreen({ onBack }) {
   const activeCfg = FILTERS.find((f) => f.id === activeFilter) || FILTERS[0];
   const { latitude: uLat = 12.97, longitude: uLon = 77.59 } = userLocation || {};
 
-  const polylineCoords = useMemo(
-    () =>
-      activeRoute?.polyline?.map((p) => ({
+  const { isOffline } = useEmergency();
+
+  const polylineCoords = useMemo(() => {
+    if (activeRoute?.polyline) {
+      return activeRoute.polyline.map((p) => ({
         latitude: p.latitude,
         longitude: p.longitude,
-      })) || [],
-    [activeRoute],
-  );
+      }));
+    }
+    if ((isOffline || routeError) && userLocation && selectedFacility) {
+      // Fallback straight line
+      return [
+        { latitude: userLocation.latitude, longitude: userLocation.longitude },
+        { latitude: selectedFacility.lat, longitude: selectedFacility.lon }
+      ];
+    }
+    return [];
+  }, [activeRoute, isOffline, routeError, userLocation, selectedFacility]);
 
   // ── Render ────────────────────────────────────────────────────
   return (

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
+import axios from 'axios';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +25,7 @@ import {
   facilityTypeToFilter,
   rankFacility,
 } from '../context/EmergencyContext';
+import { verifyOnlineStatusViaWebSocket } from '../services/networkService';
 
 const { width } = Dimensions.get('window');
 
@@ -86,6 +88,10 @@ const LOADING_MESSAGES = [
   'Fetching emergency services...',
 ];
 
+import { updateCacheIfNeeded, getCachedFacilities } from '../services/cacheService';
+import { enqueueSOS } from '../services/offlineQueueService';
+import * as SMS from 'expo-sms';
+
 export default function HomeScreen({ onNavigateToMap, userData }) {
   const {
     setClassification,
@@ -95,6 +101,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     setIsEmergencyMode,
     setLoadingMessage,
     clearEmergency,
+    isOffline,
+    cachedFacilities,
   } = useEmergency();
 
   const [location, setLocation] = useState(null);
@@ -124,10 +132,24 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setLocationLoading(false);
       if (loc?.coords) {
         preloadPromiseRef.current = preloadFacilities(loc.coords.latitude, loc.coords.longitude);
+        updateCacheIfNeeded(loc.coords.latitude, loc.coords.longitude);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Background Cache Refresh Interval
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!isOffline && location?.coords) {
+        // Try refreshing cache every 5 minutes if online
+        // The updateCacheIfNeeded handles the distance/time logic
+        await updateCacheIfNeeded(location.coords.latitude, location.coords.longitude);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [isOffline, location]);
 
   const { latitude, longitude } = location?.coords || {};
 
@@ -287,79 +309,6 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
          }
       }
 
-      // Collect all relevant authority and trauma center numbers
-      const authorityNumbers = [];
-      const requiredTypes = data.specific_facilities || [];
-      const matchedNearby = updatedFacilities.filter(f => requiredTypes.includes(f.type));
-
-      const traumaCenters = matchedNearby.filter(f => f.type === 'trauma_center');
-      const hospitals = matchedNearby.filter(f => f.type === 'hospital' || f.type === 'clinic');
-      const policeStations = matchedNearby.filter(f => f.type === 'police');
-      const fireStations = matchedNearby.filter(f => f.type === 'fire_station');
-
-      const rankAndSort = (list, fId) => {
-        return list
-          .map(f => ({ facility: f, score: rankFacility(f, fId) }))
-          .sort((a, b) => b.score - a.score)
-          .map(item => item.facility);
-      };
-
-      const sortedTraumas = rankAndSort(traumaCenters, 'trauma');
-      const sortedHospitals = rankAndSort(hospitals, 'hospital');
-      const sortedPolice = rankAndSort(policeStations, 'police');
-      const sortedFire = rankAndSort(fireStations, 'fire');
-
-      // Trauma centers pool of dummy numbers
-      const traumaDummyPool = [
-        '+91 7259654930', // Primary trauma center
-        '+91 8722273804', // Fallback/reused from hospital
-        '+91 7892978757', // Fallback/reused from police
-        '+91 6360843513'  // Fallback/reused from fire
-      ];
-
-      if (sortedTraumas.length > 0) {
-        // Send to all trauma centers involved
-        sortedTraumas.forEach((facility, index) => {
-          const dummyNum = traumaDummyPool[index % traumaDummyPool.length];
-          authorityNumbers.push(dummyNum);
-        });
-      } else if (requiredTypes.includes('trauma_center')) {
-        authorityNumbers.push('+91 7259654930');
-      }
-
-      // Hospital numbers
-      if (sortedHospitals.length > 0) {
-        authorityNumbers.push('+91 8722273804');
-      } else if (requiredTypes.includes('hospital') || requiredTypes.includes('clinic') || requiredTypes.includes('ambulance')) {
-        authorityNumbers.push('+91 8722273804');
-      }
-
-      // Police numbers
-      if (sortedPolice.length > 0) {
-        authorityNumbers.push('+91 7892978757');
-      } else if (requiredTypes.includes('police') || requiredTypes.includes('towing') || requiredTypes.includes('roadside_assistance')) {
-        authorityNumbers.push('+91 7892978757');
-      }
-
-      // Fire numbers
-      if (sortedFire.length > 0) {
-        authorityNumbers.push('+91 6360843513');
-      } else if (requiredTypes.includes('fire_station')) {
-        authorityNumbers.push('+91 6360843513');
-      }
-
-      // Remove duplicates
-      const uniqueAuthorityNumbers = [...new Set(authorityNumbers)];
-
-      if (location?.coords) {
-        sendSOSViaSMS(
-          { latitude: lat, longitude: lon, accuracy: location.coords.accuracy },
-          userData,
-          uniqueAuthorityNumbers,
-          data.user_role || 'victim'
-        ).catch((err) => console.error('Auto SMS failed:', err));
-      }
-
       onNavigateToMap();
     },
     [setClassification, setSelectedService, setIsEmergencyMode, incrementalFetchFacilities, location, userData, onNavigateToMap, facilities],
@@ -371,16 +320,11 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       if (!textToClassify) return;
       try {
         setContextLoadingMsg('Analyzing emergency...');
-        const response = await fetch(`${API_GATEWAY_URL}/classify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: textToClassify }),
+        const response = await axios.post(`${API_GATEWAY_URL}/classify`, {
+          text: textToClassify
         });
-        if (!response.ok) {
-          setContextLoadingMsg(null);
-          return;
-        }
-        const data = await response.json();
+        
+        const data = response.data;
         setContextLoadingMsg(null);
 
         if (!data.is_emergency) {
@@ -399,16 +343,80 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       } catch (e) {
         console.error('Classification failed:', e);
         setContextLoadingMsg(null);
+        if (e.message?.includes('Network Error') || e.message?.includes('Network request failed') || e.message?.includes('Failed to fetch')) {
+          console.log('Network request failed during classification, falling back to offline mode');
+          await handleOfflineSOS(textToClassify);
+        }
       }
     },
     [applyClassification],
   );
 
-  const handleManualSubmit = () => {
+  const handleOfflineSOS = async (text, filePath = null) => {
+    setTranslation('Offline Mode: Routing to Police...');
+    const packet = {
+      text,
+      audio_path: filePath,
+      location: { lat: latitude, lon: longitude },
+    };
+
+    // Pull directly from AsyncStorage cache
+    const localFacilities = await getCachedFacilities();
+
+    // Find nearest police station from cache
+    const policeStations = localFacilities.filter((f) => f.type === 'police');
+    let nearestPolice = null;
+    if (policeStations.length > 0) {
+      // Assuming they are already somewhat sorted or just pick the first
+      nearestPolice = policeStations[0];
+      packet.cached_facility = nearestPolice;
+    }
+
+    await enqueueSOS(packet);
+
+    // Send SMS directly to police using the cached facility phone or the hardcoded fallback
+    const policePhone = nearestPolice?.phone || '+91 7892978757';
+    sendSOSViaSMS(
+      { latitude, longitude, accuracy: 0, timestamp: Date.now() },
+      userData,
+      [policePhone],
+      'victim',
+      text || (filePath ? "Offline Voice SOS Attached" : "Offline SOS"),
+      filePath
+    ).catch((err) => console.error('Offline SMS failed:', err));
+
+    // Mock classification to force map UI to show police route
+    setClassification({
+      is_emergency: true,
+      confidence_score: 1.0,
+      emergency_type: 'Offline Emergency',
+      severity: 'high',
+      specific_facilities: ['police'],
+      explanation: 'Offline mode: Auto-routed to nearest police station.'
+    });
+
+    onNavigateToMap();
+  };
+
+  const handleManualSubmit = async () => {
     if (!manualText.trim()) return;
     setTranslation(manualText);
     setIsTextInputMode(false);
-    if (latitude && longitude) handleClassify(manualText, latitude, longitude);
+    if (latitude && longitude) {
+      if (isOffline) {
+        handleOfflineSOS(manualText);
+      } else {
+        setTranslation('Checking server connection...');
+        const isServerOnline = await verifyOnlineStatusViaWebSocket(8000);
+        
+        if (isServerOnline) {
+          handleClassify(manualText, latitude, longitude);
+        } else {
+          console.log('Server unreachable via WebSocket. Falling back to offline mode.');
+          handleOfflineSOS(manualText);
+        }
+      }
+    }
     setManualText('');
   };
 
@@ -418,7 +426,22 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setIsRecording(false);
       const filePath = await stopRecording();
       if (filePath) {
+        if (isOffline) {
+           await handleOfflineSOS(null, filePath);
+           return;
+        }
+
         setLoading(true);
+        setTranslation('Checking server connection...');
+        const isServerOnline = await verifyOnlineStatusViaWebSocket(8000);
+        
+        if (!isServerOnline) {
+          console.log('Server unreachable via WebSocket. Falling back to offline mode.');
+          setLoading(false);
+          await handleOfflineSOS(null, filePath);
+          return;
+        }
+
         setTranslation('Analyzing audio...');
         const result = await uploadAudio(filePath);
         setLoading(false);
@@ -454,9 +477,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     } catch (e) {
       console.error("Failed to get location dynamically in dispatchServiceSMS:", e);
     }
-
     const targetPhone = SERVICE_TO_PHONE[serviceId];
-    if (targetPhone && currentLoc?.coords) {
+    if (isOffline && targetPhone && currentLoc?.coords) {
       sendSOSViaSMS(
         { 
           latitude: currentLoc.coords.latitude, 
@@ -467,11 +489,11 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         userData,
         [targetPhone],
         'bystander',
+        null,
         attachmentUri
       ).catch((err) => console.error('Service manual SMS failed:', err));
     }
   };
-
   const handlePhotoSelection = async (serviceId, type) => {
     try {
       if (type === 'camera') {
@@ -546,7 +568,6 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         {
           text: 'Send Text Only',
           onPress: () => dispatchServiceSMS(serviceId, null),
-        },
       ],
       { cancelable: true }
     );
@@ -577,6 +598,13 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Offline Banner */}
+        {isOffline && (
+          <View style={{ backgroundColor: '#ef4444', padding: 8, alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Offline Mode: Using Local Fallback</Text>
+          </View>
+        )}
+
         {/* Coordinates Strip */}
         <View style={styles.coordStrip}>
           <Ionicons name="location" size={16} color="#475569" style={{ marginRight: 6 }} />

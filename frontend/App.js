@@ -9,6 +9,7 @@ import MapScreen from './src/screens/MapScreen';
 import SOSScreen from './src/screens/SOSScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { EmergencyProvider } from './src/context/EmergencyContext';
+import ConnectivityMonitor from './src/services/connectivityMonitor';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('Loading');
@@ -45,6 +46,7 @@ export default function App() {
 
   return (
     <EmergencyProvider>
+      <ConnectivityMonitor />
       <View style={styles.root}>
         <StatusBar style="dark" />
         {currentScreen === 'Registration' && (
