@@ -21,6 +21,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
 - [x] **AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
 - [x] **Detailed Demographic Classification**: Classify for demographics (pregnant women, children) and specific injury types (e.g., eye or head injuries) to dynamically route to specialized hospitals.
+- [x] **Fire Station Classification**: Specifically classify fire and burning incidents to route to the nearest fire station in combination with medical facilities.
 - [x] **Vehicle Showrooms**: Display nearest vehicle showrooms for rescue and assistance.
 - [x] **Image/Camera Input Option**: Allow users to attach images or open the camera directly from the application. This image should be added to the SMS *only* for Trauma Centers, Police Stations, and 3-digit emergency numbers. *(Note: For now, the image is sent as a link. Later, in the Android APK build, it must be sent as the actual image file itself).* [Assignee: Tanish]
 ---
@@ -35,6 +36,10 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Unassigned ]
 - [ ] **Cancel Button**: A cancel button to stop voice recording, SMS dispatch, or any ongoing emergency process.
   - *Assignee:* [ Tanish ]
+- [ ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
+  - *Assignee:* [ Unassigned ]
+- [ ] **Notification Bar Overlap**: Fix the top UI layout padding so elements do not overlap with the device's status/notification bar.
+  - *Assignee:* [ Unassigned ]
 - [ ] **Manual Location Override**: Allow changing the location manually to test global functionality and verify if regional data loads correctly.
   - *Assignee:* [ Unassigned ]
 - [ ] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
@@ -48,17 +53,16 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Vibha ]
 
 ### ⚙️ Dispatch Logic & Overrides
-- [ ] **Trauma Specific SMS**: Trigger customized SMS messages including the voice text being given as input when used by user.
-(audio and txt going only for offline mode to nearest police station as a custom msg, pic going for normal sms option to trauma centres for now)
-  - *Assignee:* [ Vibha ]
+- [ ] **Nearest Medical Facility Routing**: When both trauma center and hospital are classified, deduplicate and route the user to ONLY the single nearest available medical facility to avoid map confusion.
+  - *Assignee:* [ Unassigned ]
 - [On Hold] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
-- [ ] **Role-Based SMS Routing**: If Victim -> send SMS to trauma center, general (police/fire/all ppl nearby), and emergency contacts. If Bystander -> send SMS to trauma center and general, but NOT emergency contacts.
-(Except trauma centre finish everything else)
-  - *Assignee:* [ Vibha ]
+
 - [ ] **Context-Aware Nearby Dispatch**: Send SMS to nearby people generally, but prevent sending alerts to nearby people if AI classification detects a terrorist attack + police involved (to protect their safety).
   - *Assignee:* [ Vibha ]
+- [ ] **Complex Injury Combinations**: Test and refine AI routing for overlapping edge cases (e.g., Pregnant + Eye Injury, Eye + Broken Leg, Pregnancy + Leg) to ensure the system prioritizes the most critical specialist or defaults to a general trauma center correctly.
+  - *Assignee:* [ Unassigned ]
 - [ ] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emrgency contacts(but if the time is in the night then to emergency contacts).
   - *Assignee:* [ Vibha ]
 - [On Hold] **Telegram Chatbot Debugging**: Debug and stabilize the Telegram dispatch chatbot and have a group discussion on whether telegram is required or keep it as a notification of our application.
