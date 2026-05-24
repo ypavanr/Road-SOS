@@ -14,13 +14,6 @@ FACILITY_QUERIES = [
     # Police
     'node["amenity"="police"]',
     'way["amenity"="police"]',
-    # Ambulance
-    'node["emergency"="ambulance_station"]',
-    'way["emergency"="ambulance_station"]',
-    'node["amenity"="ambulance_station"]',
-    'node["healthcare"="ambulance"]',
-    'node["name"~"ambulance",i]',
-    'way["name"~"ambulance",i]',
     # Fire stations
     'node["amenity"="fire_station"]',
     'way["amenity"="fire_station"]',
@@ -35,8 +28,6 @@ def _infer_type(tags: dict) -> str:
     amenity = tags.get("amenity", "").lower()
     name = tags.get("name", "").lower()
 
-    if emergency in ("ambulance_station",) or amenity == "ambulance_station" or healthcare == "ambulance" or "ambulance" in name:
-        return "ambulance"
     if amenity == "police":
         return "police"
     if amenity == "fire_station":
@@ -81,7 +72,7 @@ def _parse_element(element: dict):
         contact=parse_contact(tags),
         distance_km=0.0,
         opening_hours=tags.get("opening_hours"),
-        emergency=tags.get("emergency", "").lower() in ("yes", "ambulance_station"),
+        emergency=tags.get("emergency", "").lower() == "yes",
         beds=beds,
         specialties=specialties,
         source="openstreetmap",

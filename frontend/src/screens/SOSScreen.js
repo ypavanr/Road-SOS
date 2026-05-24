@@ -10,7 +10,7 @@ import { getLocationData } from '../services/locationService';
 import { sendSOSViaTelegram, sendLocationPin } from '../services/telegramService';
 import { sendSOSViaSMS } from '../services/smsService';
 import { selectPhotoSource } from '../services/photoPickerService';
-import { COUNTDOWN_SECONDS } from '../config/config';
+import { COUNTDOWN_SECONDS, POLICE_PHONE, FIRE_PHONE, TRAUMA_PHONE, HOSPITAL_PHONE } from '../config/config';
 import { API_GATEWAY_URL } from '../../config';
 
 const { width } = Dimensions.get('window');
@@ -179,10 +179,10 @@ export default function SOSScreen() {
         data,
         null,
         [
-          '+91 7259654930',
-          '+91 8722273804',
-          '+91 7892978757',
-          '+91 6360843513'
+          TRAUMA_PHONE,
+          HOSPITAL_PHONE,
+          POLICE_PHONE,
+          FIRE_PHONE
         ],
         'victim',
         photoUri

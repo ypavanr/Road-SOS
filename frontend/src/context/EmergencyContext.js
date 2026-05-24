@@ -88,7 +88,6 @@ export function useEmergency() {
 
 const PRIORITY_ORDER = [
   'trauma_center',
-  'ambulance',
   'hospital',
   'clinic',
   'fire_station',
@@ -114,7 +113,6 @@ const TYPE_TO_FILTER = {
   hospital: 'hospital',
   clinic: 'hospital',
   trauma_center: 'trauma',
-  ambulance: 'ambulance',
   police: 'police',
   fire_station: 'fire',
   towing: 'towing',
@@ -131,18 +129,13 @@ export function facilityTypeToFilter(facilityType) {
 
 // ── Utility: rank a facility within a given filter category ──
 
-export function rankFacility(facility, filterId) {
+export function rankFacility(facility, filterId, classification) {
   let score = 0;
   if (facility.emergency) score += 100;
 
   switch (filterId) {
     case 'trauma':
       if (facility.type === 'trauma_center') score += 80;
-      if (facility.type === 'hospital') score += 40;
-      break;
-    case 'ambulance':
-      if (facility.type === 'ambulance') score += 80;
-      if (facility.type === 'trauma_center') score += 60;
       if (facility.type === 'hospital') score += 40;
       break;
     case 'hospital':
@@ -172,6 +165,50 @@ export function rankFacility(facility, filterId) {
       break;
     default:
       break;
+  }
+
+  // AI Classification specialisation logic
+  if (classification && (filterId === 'hospital' || filterId === 'trauma')) {
+    const nameLower = facility.name.toLowerCase();
+    const isEye = nameLower.includes('eye') || nameLower.includes('retina') || nameLower.includes('nethralaya') || nameLower.includes('vision');
+    const isWomen = nameLower.includes('women') || nameLower.includes('maternity') || nameLower.includes('mother');
+    const isChild = nameLower.includes('child') || nameLower.includes('pediatric') || nameLower.includes('paediatric') || nameLower.includes('shishu') || nameLower.includes('kids');
+    const isDental = nameLower.includes('dental') || nameLower.includes('tooth') || nameLower.includes('teeth');
+
+    // 1. Eye care logic
+    if (classification.injury_type === 'eye') {
+      if (isEye) score += 200;
+    } else {
+      if (isEye) score -= 500;
+    }
+
+    // 2. Maternity / Women logic
+    if (classification.patient_demographic === 'pregnant') {
+      if (isWomen) score += 200;
+    } else if (classification.patient_gender === 'male') {
+      if (isWomen) score -= 500;
+    } else if (classification.patient_gender !== 'female') {
+      // If gender is unknown and not pregnant, heavily penalise women's hospitals
+      if (isWomen) score -= 300;
+    } else {
+      // Even if female, if it's a general severe accident, regular trauma center is often better than a maternity clinic
+      if (isWomen && classification.injury_type === 'general') score -= 100;
+    }
+
+    // 3. Children / Pediatric logic
+    if (classification.patient_demographic === 'child') {
+      if (isChild) score += 200;
+    } else if (classification.patient_demographic === 'adult' || classification.patient_demographic === 'elderly') {
+      if (isChild) score -= 500;
+    } else {
+      // If unknown, still penalise pediatric hospitals for general trauma
+      if (isChild) score -= 300;
+    }
+
+    // 4. Dental safe-guard
+    if (isDental) {
+      score -= 500;
+    }
   }
 
   // Lower ETA = higher score; penalise missing ETA

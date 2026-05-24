@@ -20,7 +20,7 @@ Analyze the prompt and accurately determine:
 1. Is it an emergency?
 2. What broad categories are involved? (medical, police, roadside)
 3. What specific facilities are needed? Choose ONLY from this strict list:
-   hospital, trauma_center, clinic, ambulance, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
+   hospital, trauma_center, clinic, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
 4. What is the user's role? If the user is the one injured/affected (e.g. "I am bleeding"), choose "victim". If the user is observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
 5. What is the patient's gender? Based on mentions like "he", "she", "male", "female", "woman", "man", choose "male", "female", or "unknown".
 6. What is the patient's demographic? Choose from: "pregnant", "child", "elderly", or "adult" (default to "adult").
@@ -28,10 +28,11 @@ Analyze the prompt and accurately determine:
 
 CRITICAL INSTRUCTIONS: 
 - Mapping of facilities to categories:
-  * 'medical' -> hospital, trauma_center, clinic, ambulance, fire_station
+  * 'medical' -> hospital, trauma_center, clinic, fire_station
   * 'police' -> police
   * 'roadside' -> towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
 - Multiple emergencies can exist concurrently. If it's a crime scene with injuries, both 'police' and 'medical' are required.
+- If the situation involves FIRE, flames, burning, or a severe crash, you MUST select 'fire_station' (for fire) AND you MUST ALSO include 'hospital' and 'trauma_center' in specific_facilities because there is a high risk of casualties. DO NOT select 'fuel_station' for fires.
 - You must provide a clear 'explanation' string summarizing your reasoning.
 - You must return a valid JSON object matching this schema exactly:
 {
@@ -70,7 +71,7 @@ async def classify_text(text: str) -> ClassifyResponse:
         specific = data.get("specific_facilities", [])
         
         # Post-process to ensure correct mapping
-        medical_set = {"hospital", "trauma_center", "clinic", "ambulance", "fire_station"}
+        medical_set = {"hospital", "trauma_center", "clinic", "fire_station"}
         police_set = {"police"}
         roadside_set = {"towing", "roadside_assistance", "tyre_shop", "car_repair", "fuel_station", "showroom"}
         

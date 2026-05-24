@@ -49,14 +49,6 @@ const FILTERS = [
     endpoint: '/nearby/medical',
   },
   {
-    id: 'ambulance',
-    name: 'Ambulance',
-    icon: 'medical',
-    color: '#ef4444',
-    facilityTypes: ['ambulance'],
-    endpoint: '/nearby/medical',
-  },
-  {
     id: 'police',
     name: 'Police',
     icon: 'shield-checkmark',
@@ -112,12 +104,11 @@ const TYPE_COLOR = {
   hospital: '#ef4444',
   trauma_center: '#8b5cf6',
   clinic: '#f87171',
-  ambulance: '#ef4444',
   police: '#3b82f6',
   fire_station: '#f97316',
   towing: '#6366f1',
-  roadside_assistance: '#6366f1',
-  car_repair: '#6366f1',
+  roadside_assistance: '#0ea5e9',
+  car_repair: '#84cc16',
   tyre_shop: '#14b8a6',
   fuel_station: '#eab308',
   showroom: '#ec4899',
@@ -127,7 +118,6 @@ const TYPE_ICON = {
   hospital: 'business',
   trauma_center: 'heart-half',
   clinic: 'medkit',
-  ambulance: 'medical',
   police: 'shield-checkmark',
   fire_station: 'flame',
   towing: 'car',
@@ -141,7 +131,6 @@ const TYPE_ICON = {
 const FILTER_ROUTE_COLOR = {
   hospital: '#ef4444',
   trauma: '#8b5cf6',
-  ambulance: '#ef4444',
   police: '#3b82f6',
   fire: '#f97316',
   towing: '#6366f1',
@@ -158,31 +147,44 @@ function filterFacilitiesByType(facilities, filterId) {
   return facilities.filter((f) => cfg.facilityTypes.includes(f.type));
 }
 
-function getTopFacilities(facilities, filterId, limit = 6) {
+function getTopFacilities(facilities, filterId, classification, limit = 6) {
   const filtered = filterFacilitiesByType(facilities, filterId);
   return [...filtered]
-    .sort((a, b) => rankFacility(b, filterId) - rankFacility(a, filterId))
+    .sort((a, b) => rankFacility(b, filterId, classification) - rankFacility(a, filterId, classification))
     .slice(0, limit);
 }
 
 // Returns the best facility per specific_facility type (for multi-service emergencies)
-function getBestPerServiceType(facilities, specificFacilities) {
+function getBestPerServiceType(facilities, specificFacilities, classification) {
   const result = {};
+  const usedFacilityIds = new Set();
+
   for (const svcType of specificFacilities) {
     const filterId = facilityTypeToFilter(svcType);
-    const matches = facilities.filter((f) => f.type === svcType);
+    let matches = facilities.filter((f) => f.type === svcType && !usedFacilityIds.has(f.id));
+    
     if (matches.length === 0) {
-      // fallback to filter group
-      const group = filterFacilitiesByType(facilities, filterId);
-      if (group.length) {
-        result[svcType] = [...group].sort(
-          (a, b) => rankFacility(b, filterId) - rankFacility(a, filterId),
-        )[0];
-      }
+      matches = facilities.filter((f) => f.type === svcType);
+    }
+
+    if (matches.length > 0) {
+      const best = [...matches].sort((a, b) => rankFacility(b, filterId, classification) - rankFacility(a, filterId, classification)).find(f => !usedFacilityIds.has(f.id)) || matches[0];
+      result[svcType] = best;
+      usedFacilityIds.add(best.id);
     } else {
-      result[svcType] = [...matches].sort(
-        (a, b) => rankFacility(b, filterId) - rankFacility(a, filterId),
-      )[0];
+      // fallback to filter group
+      const group = filterFacilitiesByType(facilities, filterId).filter(f => !usedFacilityIds.has(f.id));
+      if (group.length) {
+        const best = [...group].sort((a, b) => rankFacility(b, filterId, classification) - rankFacility(a, filterId, classification))[0];
+        result[svcType] = best;
+        usedFacilityIds.add(best.id);
+      } else {
+        // if all in group are used, just reuse the best one from the full group
+        const fallbackGroup = filterFacilitiesByType(facilities, filterId);
+        if (fallbackGroup.length) {
+          result[svcType] = [...fallbackGroup].sort((a, b) => rankFacility(b, filterId, classification) - rankFacility(a, filterId, classification))[0];
+        }
+      }
     }
   }
   return result;
@@ -300,14 +302,40 @@ export default function MapScreen({ onBack }) {
 
   // Derived: top facilities for the active filter
   const topFacilities = useMemo(
-    () => getTopFacilities(facilities, activeFilter),
-    [facilities, activeFilter],
+    () => getTopFacilities(facilities, activeFilter, classification),
+    [facilities, activeFilter, classification],
   );
 
   // Derived: best facility per AI-classified service type (for multi-service markers)
   const bestPerService = useMemo(() => {
     if (!classification?.specific_facilities?.length) return {};
-    return getBestPerServiceType(facilities, classification.specific_facilities);
+    
+    // Get best facility for ALL requested service types
+    const rawBest = getBestPerServiceType(facilities, classification.specific_facilities, classification);
+
+    // Deduplicate medical requirements for routing: keep only the NEAREST one out of trauma_center, hospital, clinic
+    const medicalKeys = ['trauma_center', 'hospital', 'clinic'].filter(k => rawBest[k]);
+    if (medicalKeys.length > 1) {
+      // Find the one with the lowest distance (or ETA)
+      let bestMedKey = medicalKeys[0];
+      let bestMedVal = rawBest[bestMedKey].distance_km || 999;
+      
+      for (let i = 1; i < medicalKeys.length; i++) {
+        const key = medicalKeys[i];
+        const val = rawBest[key].distance_km || 999;
+        if (val < bestMedVal) {
+          bestMedVal = val;
+          bestMedKey = key;
+        }
+      }
+
+      // Remove all medical keys EXCEPT bestMedKey so only one medical route is drawn
+      medicalKeys.forEach(k => {
+        if (k !== bestMedKey) delete rawBest[k];
+      });
+    }
+
+    return rawBest;
   }, [classification, facilities]);
 
   // ── Location ────────────────────────────────────────────────
@@ -335,25 +363,69 @@ export default function MapScreen({ onBack }) {
     if (selectedService && selectedService !== activeFilter) {
       setActiveFilter(selectedService);
     }
-  }, [selectedService]);
+  }, [selectedService, activeFilter]);
+
+  const lastFetchedFilterRef = useRef(null);
+  useEffect(() => {
+    if (!userLocation || !activeFilter) return;
+    
+    if (lastFetchedFilterRef.current !== activeFilter) {
+      const existing = filterFacilitiesByType(facilities, activeFilter);
+      if (existing.length === 0) {
+        lastFetchedFilterRef.current = activeFilter;
+        fetchFacilitiesForFilter(activeFilter, userLocation.latitude, userLocation.longitude);
+      } else {
+        lastFetchedFilterRef.current = activeFilter;
+      }
+    }
+  }, [activeFilter, userLocation, facilities, fetchFacilitiesForFilter]);
 
   // ── Auto-select best facility and fetch route when filter/facilities change ──
   useEffect(() => {
-    if (!topFacilities.length || !userLocation) return;
-    const best = topFacilities[0];
+    if (!userLocation) return;
     
-    // Always trigger primary route selection if changed
-    if (selectedFacility?.id !== best.id || !activeRoute) {
-      selectFacility(best);
+    if (topFacilities.length > 0) {
+      const best = topFacilities[0];
+      if (!selectedFacility || selectedFacility.id !== best.id) {
+        selectFacility(best);
+      }
+    } else {
+      if (selectedFacility) setSelectedFacility(null);
+      if (activeRoute) setActiveRoute(null);
     }
 
-    // Trigger secondary routes fetch for multi-service emergencies
+    // Always fetch secondary routes if we are in a multi-service emergency
     if (classification?.is_emergency && classification.specific_facilities?.length > 1) {
       fetchMultiRoutes(bestPerService);
     } else {
       setMultiRoutes({});
     }
-  }, [topFacilities, userLocation, classification, bestPerService]);
+  }, [topFacilities, userLocation, classification, bestPerService, selectedFacility, activeRoute, selectFacility]);
+
+  // ── Auto-fallback to secondary emergency services if primary is empty ──
+  const attemptedFiltersRef = useRef(new Set());
+
+  useEffect(() => {
+    attemptedFiltersRef.current.clear();
+  }, [classification]);
+
+  useEffect(() => {
+    if (!isEmergencyMode || fetchingFacilities || !classification?.specific_facilities) return;
+    
+    if (topFacilities.length === 0 && activeFilter) {
+      attemptedFiltersRef.current.add(activeFilter);
+      
+      // Find the next service in specific_facilities that we haven't attempted yet
+      for (const svcType of classification.specific_facilities) {
+        const nextFilterId = facilityTypeToFilter(svcType);
+        if (!attemptedFiltersRef.current.has(nextFilterId)) {
+          setActiveFilter(nextFilterId);
+          setSelectedService(nextFilterId);
+          return;
+        }
+      }
+    }
+  }, [isEmergencyMode, fetchingFacilities, topFacilities, activeFilter, classification]);
 
   // ── Fetch multiple secondary routes ─────────────
   const fetchMultiRoutes = useCallback(
@@ -520,14 +592,8 @@ export default function MapScreen({ onBack }) {
       setIsEmergencyMode(false);
       setActiveRoute(null);
       setSelectedFacility(null);
-
-      if (!userLocation) return;
-      const existing = filterFacilitiesByType(facilities, filterId);
-      if (existing.length === 0) {
-        fetchFacilitiesForFilter(filterId, userLocation.latitude, userLocation.longitude);
-      }
     },
-    [facilities, userLocation, setSelectedService, setIsEmergencyMode, setActiveRoute, setSelectedFacility, fetchFacilitiesForFilter],
+    [setSelectedService, setIsEmergencyMode, setActiveRoute, setSelectedFacility],
   );
 
   // ── Open in Google Maps ───────────────────────────────────────

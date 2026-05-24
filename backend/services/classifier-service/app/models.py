@@ -10,7 +10,7 @@ class ClassifyResponse(BaseModel):
         description="The broad categories of the emergency."
     )
     specific_facilities: List[Literal[
-        "hospital", "trauma_center", "clinic", "ambulance", "police", "fire_station",
+        "hospital", "trauma_center", "clinic", "police", "fire_station",
         "towing", "roadside_assistance", "tyre_shop", "car_repair", "fuel_station", "showroom"
     ]] = Field(description="The specific facilities required to handle the emergency.")
     explanation: str = Field(description="Reasoning behind the classification.")

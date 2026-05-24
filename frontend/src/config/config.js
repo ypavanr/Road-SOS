@@ -16,15 +16,20 @@ export const TELEGRAM_CONFIG = {
 
 // Phone numbers that will receive the SMS alert
 // Format: international format e.g. '+919876543210'
+export const POLICE_PHONE = process.env.EXPO_PUBLIC_POLICE_PHONE;
+export const FIRE_PHONE = process.env.EXPO_PUBLIC_FIRE_PHONE;
+export const TRAUMA_PHONE = process.env.EXPO_PUBLIC_TRAUMA_PHONE;
+export const HOSPITAL_PHONE = process.env.EXPO_PUBLIC_HOSPITAL_PHONE;
+
 export const SMS_NUMBERS = [
-  '+918722273804',
-  '+917892978757',   // Authority / Police  // Personal emergency contact — add yours here
+  HOSPITAL_PHONE,
+  POLICE_PHONE,   // Authority / Police  // Personal emergency contact — add yours here
 ];
 
 // Person who will be sending the SOS
 export const USER_INFO = {
   name:         'tanish',
-  phone:        '+918722273804',
+  phone:        HOSPITAL_PHONE,
   medicalNotes: 'None',        // allergies, conditions — leave 'None' if none
   address:      'HAL C & D QUARTERS, HAL, Bangalore, Karnataka 560037',
 };

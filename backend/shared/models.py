@@ -22,7 +22,7 @@ class Address(BaseModel):
 class Facility(BaseModel):
     id: str
     name: str
-    # medical: hospital | trauma_center | clinic | ambulance
+    # medical: hospital | trauma_center | clinic
     # safety:  police | fire_station
     # roadside: towing | roadside_assistance | tyre_shop | car_repair | fuel_station
     type: str
@@ -62,7 +62,7 @@ class NearbyResponse(BaseModel):
 class EmergencyContact(BaseModel):
     name: str
     number: str
-    type: str  # emergency | police | ambulance | fire | highway | women | child | disaster | medical
+    type: str  # emergency | police | fire | highway | women | child | disaster | medical
     description: str
     country: str = "IN"
     always_available: bool = True

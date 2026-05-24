@@ -4,7 +4,7 @@ from app.models import ClassifyResponse
 _MEDICAL = [
     "bleed", "blood", "hurt", "pain", "injured", "injury", "unconscious",
     "heart", "breathe", "breathing", "fracture", "broken bone", "burn",
-    "medical", "ambulance", "hospital", "chest pain", "stroke", "seizure",
+    "medical", "hospital", "chest pain", "stroke", "seizure",
     "faint", "vomit", "choking", "poison", "allergy", "pregnant",
     "wound", "cut", "head", "trauma", "stab", "stabbed",
 ]
@@ -60,7 +60,7 @@ def fallback_classify(text: str) -> ClassifyResponse:
     # ── Medical ──────────────────────────────────────────────
     if med_hits:
         broad.add("medical")
-        specific.update(["ambulance", "trauma_center", "hospital"])
+        specific.update(["trauma_center", "hospital"])
         reasons.append(f"Medical keywords detected: {', '.join(med_hits)}")
 
     # ── Police ───────────────────────────────────────────────
@@ -72,7 +72,7 @@ def fallback_classify(text: str) -> ClassifyResponse:
     # ── Fire ─────────────────────────────────────────────────
     if fire_hits:
         broad.add("medical")   # fires cause injuries
-        specific.update(["fire_station", "ambulance"])
+        specific.update(["fire_station", "hospital", "trauma_center"])
         reasons.append(f"Fire keywords detected: {', '.join(fire_hits)}")
 
     # ── Roadside ─────────────────────────────────────────────
@@ -95,7 +95,7 @@ def fallback_classify(text: str) -> ClassifyResponse:
     # ── Accident (multi-type) ────────────────────────────────
     if acc_hits:
         broad.update(["medical", "police", "roadside"])
-        specific.update(["ambulance", "police", "towing", "hospital"])
+        specific.update(["police", "towing", "hospital"])
         reasons.append(f"Accident keywords detected: {', '.join(acc_hits)}")
 
     # ── Emergency detection ──────────────────────────────────
@@ -105,8 +105,8 @@ def fallback_classify(text: str) -> ClassifyResponse:
     # Default fallback when is_emergency but nothing specific matched
     if is_emergency and not specific:
         broad.update(["medical", "police"])
-        specific.update(["ambulance", "police"])
-        reasons.append("Emergency intent detected but no specific category matched — defaulting to ambulance and police.")
+        specific.update(["police", "hospital"])
+        reasons.append("Emergency intent detected but no specific category matched — defaulting to hospital and police.")
 
     explanation = " | ".join(reasons) if reasons else "No emergency keywords detected in the prompt."
 

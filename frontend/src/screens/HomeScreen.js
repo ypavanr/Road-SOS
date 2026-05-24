@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { API_GATEWAY_URL } from '../../config';
+import { POLICE_PHONE, FIRE_PHONE, TRAUMA_PHONE, HOSPITAL_PHONE } from '../config/config';
 import { startRecording, stopRecording, uploadAudio } from '../services/audioService';
 import { sendSOSViaSMS } from '../services/smsService';
 import {
@@ -31,7 +32,6 @@ const { width } = Dimensions.get('window');
 const HIGH_CONFIDENCE_THRESHOLD = 0.75;
 
 const SERVICES = [
-  { id: 'ambulance', name: 'Ambulance', icon: 'medical', color: '#ef4444' },
   { id: 'police', name: 'Police', icon: 'shield-checkmark', color: '#3b82f6' },
   { id: 'fire', name: 'Fire Station', icon: 'flame', color: '#f97316' },
   { id: 'hospital', name: 'Hospitals', icon: 'business', color: '#ec4899' },
@@ -43,21 +43,29 @@ const SERVICES = [
 ];
 
 const SERVICE_TO_PHONE = {
-  trauma: '+91 7259654930',
-  ambulance: '+91 7259654930',
-  hospital: '+91 8722273804',
-  fuel: '+91 8722273804',
-  police: '+91 7892978757',
-  towing: '+91 7892978757',
-  fire: '+91 6360843513',
-  tyre: '+91 6360843513',
-  showroom: '+91 7892978757',
+  // UI Icon Keys
+  hospital: HOSPITAL_PHONE,
+  trauma: TRAUMA_PHONE,
+  police: POLICE_PHONE,
+  fire: FIRE_PHONE,
+  towing: POLICE_PHONE,
+  tyre: FIRE_PHONE,
+  fuel: HOSPITAL_PHONE,
+  showroom: POLICE_PHONE,
+  
+  // Classifier Keys
+  trauma_center: TRAUMA_PHONE,
+  clinic: HOSPITAL_PHONE,
+  fire_station: FIRE_PHONE,
+  tyre_shop: FIRE_PHONE,
+  car_repair: HOSPITAL_PHONE,
+  fuel_station: HOSPITAL_PHONE,
+  roadside_assistance: FIRE_PHONE,
 };
 
 const SERVICE_LABEL = {
   hospital: 'Hospital',
   trauma_center: 'Trauma Center',
-  ambulance: 'Ambulance',
   clinic: 'Clinic',
   police: 'Police',
   fire_station: 'Fire Station',
@@ -72,7 +80,6 @@ const SERVICE_LABEL = {
 const SERVICE_ICON = {
   hospital: 'business',
   trauma_center: 'heart-half',
-  ambulance: 'medical',
   clinic: 'medkit',
   police: 'shield-checkmark',
   fire_station: 'flame',
@@ -259,15 +266,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
   // Mapping of category filters to their respective dummy authority phone numbers
   const FILTER_TO_AUTHORITY = {
-    trauma: '+91 7259654930',
-    hospital: '+91 8722273804',
-    ambulance: '+91 8722273804',
-    police: '+91 7892978757',
-    fire: '+91 6360843513',
-    towing: '+91 7892978757',
-    tyre: '+91 7892978757',
-    fuel: '+91 7892978757',
-    showroom: '+91 7892978757',
+    trauma: TRAUMA_PHONE,
+    hospital: HOSPITAL_PHONE,
+    police: POLICE_PHONE,
+    fire: FIRE_PHONE,
+    towing: POLICE_PHONE,
+    tyre: FIRE_PHONE,
+    fuel: HOSPITAL_PHONE,
+    showroom: POLICE_PHONE,
   };
 
   // ── Act on a confirmed (or high-confidence) classification ────
@@ -379,7 +385,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     await enqueueSOS(packet);
 
     // Send SMS directly to police using the cached facility phone or the hardcoded fallback
-    const policePhone = nearestPolice?.phone || '+91 7892978757';
+    const policePhone = nearestPolice?.phone || POLICE_PHONE;
     sendSOSViaSMS(
       { latitude, longitude, accuracy: 0, timestamp: Date.now() },
       userData,
@@ -482,7 +488,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       console.error("Failed to get location dynamically in dispatchServiceSMS:", e);
     }
     const targetPhone = SERVICE_TO_PHONE[serviceId];
-    if (isOffline && targetPhone && currentLoc?.coords) {
+    if (targetPhone && currentLoc?.coords) {
       sendSOSViaSMS(
         { 
           latitude: currentLoc.coords.latitude, 
