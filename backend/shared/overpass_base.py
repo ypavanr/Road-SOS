@@ -4,8 +4,8 @@ from models import Address, ContactInfo
 
 # Try mirrors in order; first one that succeeds wins
 _MIRRORS = [
-    "https://overpass.kumi.systems/api/interpreter",
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
 

@@ -40,6 +40,7 @@ const SERVICES = [
   { id: 'fuel', name: 'Gas Station', icon: 'water', color: '#eab308' },
   { id: 'towing', name: 'Towing Service', icon: 'car', color: '#6366f1' },
   { id: 'tyre', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
+  { id: 'showroom', name: 'Showroom', icon: 'car-sport', color: '#ec4899' },
 ];
 
 const SERVICE_TO_PHONE = {
@@ -51,6 +52,7 @@ const SERVICE_TO_PHONE = {
   towing: '+91 7892978757',
   fire: '+91 6360843513',
   tyre: '+91 6360843513',
+  showroom: '+91 7892978757',
 };
 
 const SERVICE_LABEL = {
@@ -65,6 +67,7 @@ const SERVICE_LABEL = {
   car_repair: 'Car Repair',
   fuel_station: 'Gas Station',
   roadside_assistance: 'Roadside Assistance',
+  showroom: 'Showroom',
 };
 
 const SERVICE_ICON = {
@@ -79,6 +82,7 @@ const SERVICE_ICON = {
   car_repair: 'construct',
   fuel_station: 'water',
   roadside_assistance: 'construct',
+  showroom: 'car-sport',
 };
 
 const LOADING_MESSAGES = [
@@ -264,6 +268,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     towing: '+91 7892978757',
     tyre: '+91 7892978757',
     fuel: '+91 7892978757',
+    showroom: '+91 7892978757',
   };
 
   // ── Act on a confirmed (or high-confidence) classification ────

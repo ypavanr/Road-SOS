@@ -97,6 +97,7 @@ const PRIORITY_ORDER = [
   'tyre_shop',
   'car_repair',
   'fuel_station',
+  'showroom',
   'roadside_assistance',
 ];
 
@@ -121,6 +122,7 @@ const TYPE_TO_FILTER = {
   car_repair: 'towing',
   tyre_shop: 'tyre',
   fuel_station: 'fuel',
+  showroom: 'showroom',
 };
 
 export function facilityTypeToFilter(facilityType) {
@@ -164,6 +166,9 @@ export function rankFacility(facility, filterId) {
       break;
     case 'fuel':
       if (facility.type === 'fuel_station') score += 80;
+      break;
+    case 'showroom':
+      if (facility.type === 'showroom') score += 80;
       break;
     default:
       break;

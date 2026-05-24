@@ -18,6 +18,9 @@ FACILITY_QUERIES = [
     'node["emergency"="ambulance_station"]',
     'way["emergency"="ambulance_station"]',
     'node["amenity"="ambulance_station"]',
+    'node["healthcare"="ambulance"]',
+    'node["name"~"ambulance",i]',
+    'way["name"~"ambulance",i]',
     # Fire stations
     'node["amenity"="fire_station"]',
     'way["amenity"="fire_station"]',
@@ -30,8 +33,9 @@ def _infer_type(tags: dict) -> str:
     emergency = tags.get("emergency", "").lower()
     healthcare = tags.get("healthcare", "").lower()
     amenity = tags.get("amenity", "").lower()
+    name = tags.get("name", "").lower()
 
-    if emergency in ("ambulance_station",) or amenity == "ambulance_station":
+    if emergency in ("ambulance_station",) or amenity == "ambulance_station" or healthcare == "ambulance" or "ambulance" in name:
         return "ambulance"
     if amenity == "police":
         return "police"

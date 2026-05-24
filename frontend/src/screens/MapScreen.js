@@ -96,6 +96,14 @@ const FILTERS = [
     facilityTypes: ['fuel_station'],
     endpoint: '/nearby/roadside',
   },
+  {
+    id: 'showroom',
+    name: 'Showroom',
+    icon: 'car-sport',
+    color: '#ec4899',
+    facilityTypes: ['showroom'],
+    endpoint: '/nearby/roadside',
+  },
 ];
 
 // ── Style maps ────────────────────────────────────────────────────────────────
@@ -112,6 +120,7 @@ const TYPE_COLOR = {
   car_repair: '#6366f1',
   tyre_shop: '#14b8a6',
   fuel_station: '#eab308',
+  showroom: '#ec4899',
 };
 
 const TYPE_ICON = {
@@ -126,6 +135,7 @@ const TYPE_ICON = {
   car_repair: 'construct',
   tyre_shop: 'hammer',
   fuel_station: 'water',
+  showroom: 'car-sport',
 };
 
 const FILTER_ROUTE_COLOR = {
@@ -137,6 +147,7 @@ const FILTER_ROUTE_COLOR = {
   towing: '#6366f1',
   tyre: '#14b8a6',
   fuel: '#eab308',
+  showroom: '#ec4899',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
