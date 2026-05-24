@@ -2,6 +2,8 @@ import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_GATEWAY_URL } from '../../config';
 
+import * as FileSystem from 'expo-file-system';
+
 const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) => {
   const time = new Date(timestamp || Date.now()).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -22,7 +24,7 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo) =>
   );
 };
 
-export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = [], userRole = 'victim') => {
+export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = [], userRole = 'victim', attachmentUri = null) => {
   const isAvailable = await SMS.isAvailableAsync();
   if (!isAvailable) {
     throw new Error('SMS is not available on this device.');
@@ -64,7 +66,32 @@ export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = 
 
   const body = buildSMSBody(locationData, activeUserData || {});
 
-  const { result } = await SMS.sendSMSAsync(validNumbers, body);
+  const options = {};
+  if (attachmentUri) {
+    let contentUri = attachmentUri;
+    if (attachmentUri.startsWith('file://')) {
+      try {
+        contentUri = await FileSystem.getContentUriAsync(attachmentUri);
+      } catch (e) {
+        console.error("Failed to convert file URI to content URI:", e);
+      }
+    }
+    const filename = attachmentUri.split('/').pop() || 'photo.jpg';
+    let mimeType = 'image/jpeg';
+    if (filename.toLowerCase().endsWith('.png')) {
+      mimeType = 'image/png';
+    } else if (filename.toLowerCase().endsWith('.gif')) {
+      mimeType = 'image/gif';
+    }
+    options.attachments = {
+      uri: contentUri,
+      mimeType,
+      filename,
+    };
+  }
+
+  const { result } = await SMS.sendSMSAsync(validNumbers, body, options);
   return { result };
 };
+
 
