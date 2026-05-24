@@ -27,23 +27,21 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Notification Bar Overlap**: Fixed top UI padding for device status bar.
 - [x] **Offline Caching & Fallback**: Every 5 minutes fetches & caches nearest facilities and full road routes locally for offline access.
 - [x] **Offline Routing & Maps Functionality**: Skip API fetches and seamlessly render pre-cached road polylines when network is lost.
+- [x] **Map Default Categorization**: Take out the ambulance categorization from the map and make hospitals the default view.
 ---
 
 ## 🚧 Remaining Tasks
 
 ### 🗺️ Navigation & UI
-- [ ] **Map Default Categorization**: Take out the ambulance categorization from the map and make hospitals the default view.
-  - *Assignee:* [ Pavan ]
 - [Last] **User Onboarding & Test Run**: Provide helpful videos for new users explaining how the application works for easy navigation. Implement an interactive "test run" mode to let them practice safely.
 (After everything is done)
   - *Assignee:* [ Unassigned ]
 - [ ] **Cancel Button**: A cancel button to stop voice recording, SMS dispatch, or any ongoing emergency process.
   - *Assignee:* [ Tanish ]
-- [ ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
+- [Last] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
   - *Assignee:* [ Unassigned ]
-
 - [ ] **Manual Location Override**: Allow changing the location manually to test global functionality and verify if regional data loads correctly.
-  - *Assignee:* [ Unassigned ]
+  - *Assignee:* [ Vibha ]
 - [ ] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
   - *Assignee:* [ Unassigned ]
 
@@ -56,16 +54,17 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 ### ⚙️ Dispatch Logic & Overrides
 - [ ] **Nearest Medical Facility Routing**: When both trauma center and hospital are classified, deduplicate and route the user to ONLY the single nearest available medical facility to avoid map confusion.
-  - *Assignee:* [ Unassigned ]
+  - *Assignee:* [ Pavan, Sangam ]
 - [On Hold] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
 
-- [ ] **Context-Aware Nearby Dispatch**: Send SMS to nearby people generally, but prevent sending alerts to nearby people if AI classification detects a terrorist attack + police involved (to protect their safety).
+- [ ] **Context-Aware Nearby Dispatch**: Send SMS to nearby people generally, but prevent sending alerts to nearby people if AI classification detects a police involved (to protect their safety...test for terrorist as well).
   - *Assignee:* [ Vibha ]
 - [ ] **Complex Injury Combinations**: Test and refine AI routing for overlapping edge cases (e.g., Pregnant + Eye Injury, Eye + Broken Leg, Pregnancy + Leg) to ensure the system prioritizes the most critical specialist or defaults to a general trauma center correctly.
   - *Assignee:* [ Unassigned ]
-- [ ] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emrgency contacts(but if the time is in the night then to emergency contacts).
+- [ ] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emergency contacts(but if the time is in the night then to emergency contacts).
+(tst this)
   - *Assignee:* [ Vibha ]
 - [On Hold] **Telegram Chatbot Debugging**: Debug and stabilize the Telegram dispatch chatbot and have a group discussion on whether telegram is required or keep it as a notification of our application.
 (Discussion still pending)
@@ -83,10 +82,11 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
 
 
 ### 📡 Languages
-- [ ] **All languages integration**: Languages display as input audio and also option to change to a language with default voice prompt for calling emergency service, also the emergency contact to be in that selected language.Default language acc to location and user voice
-  - *Assignee:* [ Unassigned ]
+- [ ] **All languages integration**: Languages display as input audio and also option to change to a language with default voice prompt for calling emergency service, also the emergency contact to be in that selected language.Default language acc to location and user voice.
+  - *Assignee:* [ Pavan, Sangam ]
 ---
 
+- [ ] More research on offline and low netwowk
 ## 👥 Team Assignments
 
 *Use this section to declare who is currently working on what. Update the assignees above as work begins.*
