@@ -23,6 +23,8 @@ Analyze the prompt and accurately determine:
    hospital, trauma_center, clinic, ambulance, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
 4. What is the user's role? If the user is the one injured/affected (e.g. "I am bleeding"), choose "victim". If the user is observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
 5. What is the patient's gender? Based on mentions like "he", "she", "male", "female", "woman", "man", choose "male", "female", or "unknown".
+6. What is the patient's demographic? Choose from: "pregnant", "child", "elderly", or "adult" (default to "adult").
+7. What is the specific injury type? Choose from: "eye", "head", "burn", "cardiac", or "general" (default to "general").
 
 CRITICAL INSTRUCTIONS: 
 - Mapping of facilities to categories:
@@ -38,6 +40,8 @@ CRITICAL INSTRUCTIONS:
   "specific_facilities": [string],
   "user_role": string,
   "patient_gender": string,
+  "patient_demographic": string,
+  "injury_type": string,
   "explanation": string,
   "confidence_score": float
 }
@@ -91,7 +95,9 @@ async def classify_text(text: str) -> ClassifyResponse:
             confidence_score=data.get("confidence_score", 0.9),
             engine_used="llm",
             user_role=data.get("user_role", "unknown"),
-            patient_gender=data.get("patient_gender", "unknown")
+            patient_gender=data.get("patient_gender", "unknown"),
+            patient_demographic=data.get("patient_demographic", "adult"),
+            injury_type=data.get("injury_type", "general")
         )
     except Exception as e:
         print(f"LLM Classification failed: {e}")

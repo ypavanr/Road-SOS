@@ -18,3 +18,5 @@ class ClassifyResponse(BaseModel):
     engine_used: str = Field(description="The engine used to classify (e.g. 'llm' or 'rules').")
     user_role: str = Field(default="unknown", description="Role of the user: 'victim', 'bystander', or 'unknown'.")
     patient_gender: str = Field(default="unknown", description="Gender of the patient: 'male', 'female', or 'unknown'.")
+    patient_demographic: str = Field(default="adult", description="Demographic of the patient: 'pregnant', 'child', 'elderly', or 'adult'.")
+    injury_type: str = Field(default="general", description="Specific injury type if mentioned: 'eye', 'head', 'burn', 'cardiac', or 'general'.")

@@ -400,10 +400,19 @@ export default function MapScreen({ onBack }) {
         let matchingCount = 0;
 
         while (currentRadius <= MAX_RADIUS) {
+          const bodyObj = { 
+            lat, 
+            lon, 
+            radius_m: currentRadius,
+            patient_gender: classification?.patient_gender,
+            patient_demographic: classification?.patient_demographic,
+            injury_type: classification?.injury_type
+          };
+          
           const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lon, radius_m: currentRadius }),
+            body: JSON.stringify(bodyObj),
           });
           
           if (resp.ok) {

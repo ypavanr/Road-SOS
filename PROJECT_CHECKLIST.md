@@ -20,6 +20,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Register Page**: Succesfully implemented with all details.
 - [x] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
 - [x] **AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
+- [x] **Detailed Demographic Classification**: Classify for demographics (pregnant women, children) and specific injury types (e.g., eye or head injuries) to dynamically route to specialized hospitals.
 ---
 
 ## 🚧 Remaining Tasks
@@ -59,9 +60,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Vibha ]
 
 ### 🧠 Advanced AI Triage & Media
-- [ ] **Detailed Demographic Classification**: Classify for age/demographics (children, pregnant women) and specific injury types (e.g., eye or head injuries) to refine dispatch.
-  - *Assignee:* [ Vibha ]
-- [ ] **Image/Camera Input Option**: Allow users to attach images or open the camera directly from the application. This image should be added to the SMS *only* for Trauma Centers, Police Stations, and 3-digit emergency numbers (as it cannot be sent to personal registered emergency contacts) and this feature will be added only a part of sms scroll down one and not a part of audio or text input.
+- [ ] **Image/Camera Input Option**: Allow users to attach images or open the camera directly from the application. This image should be added to the SMS *only* for Trauma Centers, Police Stations, and 3-digit emergency numbers (as it cannot be sent to personal registered emergency contacts) and this feature will be added only a part of sms scroll down one and not a part of audio or text input. *(Note: For now, the image is sent as a link. Later, in the Android APK build, it must be sent as the actual image file itself)...reserach more on this.*
   - *Assignee:* [ Tanish ]
 
 ### 📡 Advanced Offline / Peer-to-Peer SOS

@@ -168,7 +168,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   }, [setFacilities]);
 
   // ── Incremental fetch for missing types (Fallback) ──────────
-  const incrementalFetchFacilities = useCallback(async (lat, lon, missingTypes, existingFacilities) => {
+  const incrementalFetchFacilities = useCallback(async (lat, lon, missingTypes, existingFacilities, clsData = null) => {
     try {
       setContextLoadingMsg('Searching wider area for specific services...');
       let allFacilities = [...existingFacilities];
@@ -178,7 +178,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
       while (currentRadius <= MAX_RADIUS) {
         setContextLoadingMsg(`Searching within ${currentRadius / 1000}km...`);
-        const bodyObj = { lat, lon, radius_m: currentRadius };
+        const bodyObj = { 
+          lat, 
+          lon, 
+          radius_m: currentRadius,
+          patient_gender: clsData?.patient_gender,
+          patient_demographic: clsData?.patient_demographic,
+          injury_type: clsData?.injury_type
+        };
         const body = JSON.stringify(bodyObj);
 
         const [medRes, roadRes] = await Promise.allSettled([
@@ -252,17 +259,28 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
          currentFacilities = await preloadPromiseRef.current;
       }
       
+      const isSpecialized = (data.patient_demographic && data.patient_demographic !== 'adult') || 
+                            (data.injury_type && data.injury_type !== 'general');
       const missingTypes = [];
-      for (const requiredType of (data.specific_facilities || [])) {
-         const matching = currentFacilities.filter(f => f.type === requiredType);
-         if (matching.length < 2) { 
-             missingTypes.push(requiredType);
-         }
+      
+      if (!isSpecialized) {
+        for (const requiredType of (data.specific_facilities || [])) {
+           const matching = currentFacilities.filter(f => f.type === requiredType);
+           if (matching.length < 2) { 
+               missingTypes.push(requiredType);
+           }
+        }
+      } else {
+        // If specialized, ignore preloaded general facilities to force a strict API fetch
+        currentFacilities = [];
+        for (const requiredType of (data.specific_facilities || [])) {
+           missingTypes.push(requiredType);
+        }
       }
 
       let updatedFacilities = currentFacilities;
       if (missingTypes.length > 0) {
-         const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities);
+         const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities, data);
          if (fetched && fetched.length > 0) {
            updatedFacilities = fetched;
          }

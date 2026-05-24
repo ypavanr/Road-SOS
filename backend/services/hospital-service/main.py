@@ -41,6 +41,54 @@ def _is_gender_specific(facility: Facility, patient_gender: str) -> bool:
             
     return False
 
+def _filter_specialized_facilities(facilities: list, req: NearbyRequest) -> list:
+    # 1. First, filter out wrong gender hospitals
+    if req.patient_gender and req.patient_gender.lower() != "unknown":
+        facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+        
+    # 2. Strict specialized filtering based on demographic / injury
+    filtered = []
+    is_specialized_request = False
+    
+    if req.patient_demographic in ["pregnant", "child"] or req.injury_type in ["eye", "burn", "cardiac"]:
+        is_specialized_request = True
+        
+    for f in facilities:
+        name = f.name.lower()
+        specs = [s.lower() for s in f.specialties]
+        is_match = False
+        
+        if req.patient_demographic == "pregnant":
+            keywords = ["maternity", "women", "gynaecology", "gynecology", "maternal"]
+            if any(kw in name for kw in keywords) or any(kw in spec for spec in specs for kw in keywords):
+                is_match = True
+        elif req.patient_demographic == "child":
+            keywords = ["pediatric", "children", "child", "paediatric"]
+            if any(kw in name for kw in keywords) or any(kw in spec for spec in specs for kw in keywords):
+                is_match = True
+                
+        if req.injury_type == "eye":
+            keywords = ["eye", "ophthalmology", "vision"]
+            if any(kw in name for kw in keywords) or any(kw in spec for spec in specs for kw in keywords):
+                is_match = True
+        elif req.injury_type == "burn":
+            keywords = ["burn"]
+            if any(kw in name for kw in keywords) or any(kw in spec for spec in specs for kw in keywords):
+                is_match = True
+        elif req.injury_type == "cardiac":
+            keywords = ["heart", "cardiac", "cardiology"]
+            if any(kw in name for kw in keywords) or any(kw in spec for spec in specs for kw in keywords):
+                is_match = True
+                
+        if is_match:
+            filtered.append(f)
+            
+    # Fallback logic
+    if is_specialized_request and len(filtered) > 0:
+        return filtered
+        
+    return facilities
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -74,8 +122,7 @@ async def nearby(req: NearbyRequest):
 
     if is_fresh and cached_data is not None:
         facilities = _enrich(req.lat, req.lon, cached_data)
-        if req.patient_gender:
-            facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+        facilities = _filter_specialized_facilities(facilities, req)
             
         return NearbyResponse(
             facilities=facilities, total=len(facilities), cached=True,
@@ -87,8 +134,7 @@ async def nearby(req: NearbyRequest):
     except Exception as e:
         if cached_data is not None:
             facilities = _enrich(req.lat, req.lon, cached_data)
-            if req.patient_gender:
-                facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+            facilities = _filter_specialized_facilities(facilities, req)
                 
             return NearbyResponse(
                 facilities=facilities, total=len(facilities), cached=True,
@@ -107,9 +153,8 @@ async def nearby(req: NearbyRequest):
 
     facilities = deduplicate_by_proximity(facilities)
     
-    # Filter gender specific hospitals before sorting and truncating
-    if req.patient_gender:
-        facilities = [f for f in facilities if not _is_gender_specific(f, req.patient_gender)]
+    # Filter specialized hospitals before sorting and truncating
+    facilities = _filter_specialized_facilities(facilities, req)
         
     facilities.sort(key=lambda f: f.distance_km)
     facilities = facilities[:30]
