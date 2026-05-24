@@ -19,12 +19,14 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Maps Integration**: Implement live map view/routing on the frontend.
 - [x] **Register Page**: Succesfully implemented with all details.
 - [x] **ULW Base Scoring Trauma Routing**: Choose 1st nearest trauma center based on ULW scoring, OR allow the user to select their preferred trauma center from the list.
-- [x]**AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
+- [x] **AI classification results**:add AI triage assessment UI and dynamic progressive radius search up to 20km
 ---
 
 ## 🚧 Remaining Tasks
 
 ### 🗺️ Navigation & UI
+- [ ] **User Onboarding & Test Run**: Provide helpful videos for new users explaining how the application works for easy navigation. Implement an interactive "test run" mode to let them practice safely.
+  - *Assignee:* [ Unassigned ]
 - [ ] **Cancel Button**: A cancel button to stop voice recording, SMS dispatch, or any ongoing emergency process.
   - *Assignee:* [ Unassigned ]
 - [ ] **Manual Location Override**: Allow changing the location manually to test global functionality and verify if regional data loads correctly.
@@ -34,14 +36,14 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 ### 🏥 Facilities & Services
 - [ ] **Vehicle Showrooms**: Fetch and display nearest vehicle showrooms for rescue and assistance.
-  - *Assignee:* [ Unassigned ]
+  - *Assignee:* [ Pavan ]
 - [ ] **Ambulance Assistance**: Specific feature to find and request nearby ambulance assistance.
-  - *Assignee:* [ Unassigned ]
+  - *Assignee:* [ Pavan ]
 - [ ] **Emergency Hotlines Configuration**: Configure specific hotlines (e.g., 112 for SMS, 100/11 etc. for calling) based on previous UI design.
   - *Assignee:* [ Vibha ]
 
 ### ⚙️ Dispatch Logic & Overrides
-- [x] **Trauma Specific SMS**: Trigger customized SMS messages including the voice text being given as input when used by user.
+- [ ] **Trauma Specific SMS**: Trigger customized SMS messages including the voice text being given as input when used by user.
   - *Assignee:* [ Vibha ]
 - [ ] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
@@ -59,8 +61,8 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 ### 🧠 Advanced AI Triage & Media
 - [ ] **Detailed Demographic Classification**: Classify for age/demographics (children, pregnant women) and specific injury types (e.g., eye or head injuries) to refine dispatch.
   - *Assignee:* [ Vibha ]
-- [ ] **Image Input Option**: Allow users to attach images of the incident to be parsed by AI and sent via SMS (Requires further discussion).
-  - *Assignee:* [ Vibha ]
+- [ ] **Image/Camera Input Option**: Allow users to attach images or open the camera directly from the application. This image should be added to the SMS *only* for Trauma Centers, Police Stations, and 3-digit emergency numbers (as it cannot be sent to personal registered emergency contacts) and this feature will be added only a part of sms scroll down one and not a part of audio or text input.
+  - *Assignee:* [ Tanish ]
 
 ### 📡 Advanced Offline / Peer-to-Peer SOS
 - [ ] **Offline Trauma Center Caching**: Every 5 minutes (while connected), fetch and cache the nearest trauma center locally so it's available if the network is lost while traveling.
@@ -80,7 +82,7 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
   - *Assignee:* [ Unassigned ]
 ---
 
-## 👥 Team Assignments (Example)
+## 👥 Team Assignments
 
 *Use this section to declare who is currently working on what. Update the assignees above as work begins.*
 
