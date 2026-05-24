@@ -11,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -495,6 +494,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         [targetPhone],
         'bystander',
         null,
+        null,
         attachmentUri
       ).catch((err) => console.error('Service manual SMS failed:', err));
     }
@@ -573,6 +573,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         {
           text: 'Send Text Only',
           onPress: () => dispatchServiceSMS(serviceId, null),
+        },
       ],
       { cancelable: true }
     );

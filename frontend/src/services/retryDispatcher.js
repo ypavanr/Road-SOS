@@ -1,6 +1,7 @@
 import { getOfflineQueue, dequeueSOS } from './offlineQueueService';
 import { API_GATEWAY_URL } from '../../config';
 import { checkConnectivity } from './networkService';
+import axios from 'axios';
 
 export const dispatchPendingSOS = async () => {
   const isOnline = await checkConnectivity();
@@ -18,8 +19,7 @@ export const dispatchPendingSOS = async () => {
       // Logic to sync offline SOS with backend
       // Normally, you would hit an endpoint like /offline-sync or /classify
       // Here we assume a generic sync endpoint or just rely on backend handling the text
-      const headers = { 'Content-Type': 'application/json' };
-      const body = JSON.stringify({
+      const response = await axios.post(`${API_GATEWAY_URL}/classify`, {
         text: packet.text || "Offline emergency reported.",
         lat: packet.location?.lat,
         lon: packet.location?.lon,
@@ -27,18 +27,8 @@ export const dispatchPendingSOS = async () => {
         policeStationContacted: packet.cached_facility?.name
       });
 
-      const response = await fetch(`${API_GATEWAY_URL}/classify`, {
-        method: 'POST',
-        headers,
-        body,
-      });
-
-      if (response.ok) {
-        console.log(`Successfully dispatched SOS packet ${packet.id}`);
-        await dequeueSOS(packet.id);
-      } else {
-        console.warn(`Failed to dispatch SOS packet ${packet.id}, status: ${response.status}`);
-      }
+      console.log(`Successfully dispatched SOS packet ${packet.id}`);
+      await dequeueSOS(packet.id);
     } catch (e) {
       console.error(`Error dispatching SOS packet ${packet.id}:`, e);
       // It will stay in the queue to try again later
