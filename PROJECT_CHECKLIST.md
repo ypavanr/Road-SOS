@@ -24,6 +24,9 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Fire Station Classification**: Specifically classify fire and burning incidents to route to the nearest fire station in combination with medical facilities.
 - [x] **Vehicle Showrooms**: Display nearest vehicle showrooms for rescue and assistance.
 - [x] **Image/Camera Input Option**: Allow users to attach images or open the camera directly from the application. This image should be added to the SMS *only* for Trauma Centers, Police Stations, and 3-digit emergency numbers. *(Note: For now, the image is sent as a link. Later, in the Android APK build, it must be sent as the actual image file itself).* [Assignee: Tanish]
+- [x] **Notification Bar Overlap**: Fixed top UI padding for device status bar.
+- [x] **Offline Caching & Fallback**: Every 5 minutes fetches & caches nearest facilities and full road routes locally for offline access.
+- [x] **Offline Routing & Maps Functionality**: Skip API fetches and seamlessly render pre-cached road polylines when network is lost.
 ---
 
 ## 🚧 Remaining Tasks
@@ -38,8 +41,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Tanish ]
 - [ ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
   - *Assignee:* [ Unassigned ]
-- [ ] **Notification Bar Overlap**: Fix the top UI layout padding so elements do not overlap with the device's status/notification bar.
-  - *Assignee:* [ Unassigned ]
+
 - [ ] **Manual Location Override**: Allow changing the location manually to test global functionality and verify if regional data loads correctly.
   - *Assignee:* [ Unassigned ]
 - [ ] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
@@ -71,17 +73,14 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 
 ### 📡 Advanced Offline / Peer-to-Peer SOS
-- [ ] **Offline Trauma Center Caching and Relay Timer & Fallback**: Every 5 minutes (while connected), fetch and cache the nearest trauma center locally so it's available if the network is lost while traveling.
-(DEBUGGING left arisen due to conflicts)
-  - *Assignee:* [ Tanish, Pavan, Sangam ]
+
 
 - [On Hold] **Bluetooth Relay (Mesh)**: Transmit SOS via Bluetooth to nearby devices when there is no cell network.
 Implement a timer for the Bluetooth relay system, so if the receiving phone later gains network access, it triggers the location fallback SMS automatically.
 **Condition**: Spend an hour researching if it works *without pairing* (research only).
 (Kept on hold to be done in the end)
   - *Assignee:* [ Vibha ]
-- [ ] **Offline and Low Network Functionality**: Needs more discussion on implementation details and scope.
-  - *Assignee:* [ Unassigned ]
+
 
 ### 📡 Languages
 - [ ] **All languages integration**: Languages display as input audio and also option to change to a language with default voice prompt for calling emergency service, also the emergency contact to be in that selected language.Default language acc to location and user voice

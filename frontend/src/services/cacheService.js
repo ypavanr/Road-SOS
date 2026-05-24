@@ -52,8 +52,8 @@ export const updateCacheIfNeeded = async (lat, lon) => {
       freshFacilities = freshFacilities.concat(d.facilities || []);
     }
 
-    // Filter top 3 of police, trauma, hospital, fire
-    const cacheTypes = ['police', 'trauma_center', 'hospital', 'fire_station'];
+    // Filter top 3 of police, trauma, hospital, fire and other services
+    const cacheTypes = ['police', 'trauma_center', 'hospital', 'fire_station', 'towing', 'roadside_assistance', 'car_repair', 'tyre_shop', 'fuel_station', 'showroom', 'clinic'];
     const cachedFacilities = [];
 
     cacheTypes.forEach((type) => {
@@ -64,6 +64,39 @@ export const updateCacheIfNeeded = async (lat, lon) => {
         .slice(0, 3);
       cachedFacilities.push(...matching);
     });
+
+    // Fetch routes for the top 1 facility of each cacheType to cache for offline use
+    const topFacIds = new Set();
+    cacheTypes.forEach((type) => {
+      const best = cachedFacilities.find((f) => f.type === type);
+      if (best) topFacIds.add(best.id);
+    });
+
+    for (let i = 0; i < cachedFacilities.length; i++) {
+      const fac = cachedFacilities[i];
+      if (topFacIds.has(fac.id)) {
+        try {
+          const rRes = await fetch(`${API_GATEWAY_URL}/route`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              source_lat: lat,
+              source_lon: lon,
+              dest_lat: fac.lat,
+              dest_lon: fac.lon,
+            }),
+          });
+          if (rRes.ok) {
+            const rData = await rRes.json();
+            if (rData && rData.polyline) {
+              cachedFacilities[i].cached_route = rData;
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to pre-cache route for ${fac.name}`);
+        }
+      }
+    }
 
     const newCache = {
       timestamp: now,

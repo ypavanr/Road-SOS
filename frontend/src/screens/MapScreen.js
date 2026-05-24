@@ -9,8 +9,10 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -439,6 +441,29 @@ export default function MapScreen({ onBack }) {
       Object.entries(bestFacilitiesMap).forEach(([svcType, facility]) => {
         if (!facility || svcType === primaryType) return;
 
+        if (isOffline) {
+          if (facility.cached_route && facility.cached_route.polyline) {
+            newMultiRoutes[svcType] = {
+              polyline: [
+                { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                ...facility.cached_route.polyline
+              ],
+              distance_km: facility.cached_route.distance_km || facility.distance_km,
+              source: 'fallback'
+            };
+          } else {
+            newMultiRoutes[svcType] = {
+              polyline: [
+                { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                { latitude: facility.lat, longitude: facility.lon }
+              ],
+              distance_km: facility.distance_km,
+              source: 'fallback'
+            };
+          }
+          return;
+        }
+
         const p = fetch(`${API_GATEWAY_URL}/route`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -473,11 +498,12 @@ export default function MapScreen({ onBack }) {
   // ── Fetch additional facilities if the filter returns nothing ──
   const fetchFacilitiesForFilter = useCallback(
     async (filterId, lat, lon) => {
+      if (isOffline) return;
       const cfg = FILTERS.find((f) => f.id === filterId);
       if (!cfg) return;
       setFetchingFacilities(true);
       try {
-        let currentRadius = 6000;
+        let currentRadius = 10000;
         const MAX_RADIUS = 20000;
         let allFresh = [];
         let matchingCount = 0;
@@ -507,7 +533,7 @@ export default function MapScreen({ onBack }) {
               break;
             }
           }
-          currentRadius += 3000;
+          currentRadius += 5000;
         }
 
         setFacilities((prev) => {
@@ -528,6 +554,32 @@ export default function MapScreen({ onBack }) {
   const fetchRoute = useCallback(
     async (facility) => {
       if (!userLocation || !facility) return;
+      
+      if (isOffline) {
+        if (facility.cached_route && facility.cached_route.polyline) {
+          setActiveRoute({
+            polyline: [
+              { latitude: userLocation.latitude, longitude: userLocation.longitude },
+              ...facility.cached_route.polyline
+            ],
+            distance_km: facility.cached_route.distance_km || facility.distance_km,
+            eta_text: facility.cached_route.eta_text || facility.eta_text || 'Offline route',
+            source: 'fallback'
+          });
+        } else {
+          setActiveRoute({
+            polyline: [
+              { latitude: userLocation.latitude, longitude: userLocation.longitude },
+              { latitude: facility.lat, longitude: facility.lon }
+            ],
+            distance_km: facility.distance_km,
+            eta_text: facility.eta_text || 'Offline route',
+            source: 'fallback'
+          });
+        }
+        return;
+      }
+
       setRouteLoading(true);
       setRouteError(false);
       try {
@@ -969,7 +1021,11 @@ export default function MapScreen({ onBack }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8fafc',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+  },
 
   emergencyBanner: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8,

@@ -173,7 +173,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     try {
       setContextLoadingMsg('Preloading nearby emergency services...');
       const headers = { 'Content-Type': 'application/json' };
-      const body = JSON.stringify({ lat, lon, radius_m: 6000 });
+      const body = JSON.stringify({ lat, lon, radius_m: 10000 });
 
       const [medRes, roadRes] = await Promise.allSettled([
         fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
@@ -205,7 +205,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     try {
       setContextLoadingMsg('Searching wider area for specific services...');
       let allFacilities = [...existingFacilities];
-      let currentRadius = 11000; // Next step after 6km is 6+5=11km
+      let currentRadius = 15000; // Next step after 10km is 10+5=15km
       const MAX_RADIUS = 20000;
       const headers = { 'Content-Type': 'application/json' };
 
@@ -382,6 +382,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   );
 
   const handleOfflineSOS = async (text, filePath = null) => {
+    clearEmergency();
     setTranslation('Offline Mode: Routing to Police...');
     const packet = {
       text,
@@ -423,6 +424,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       specific_facilities: ['police'],
       explanation: 'Offline mode: Auto-routed to nearest police station.'
     });
+    setSelectedService('police');
+    setIsEmergencyMode(true);
 
     onNavigateToMap();
   };
