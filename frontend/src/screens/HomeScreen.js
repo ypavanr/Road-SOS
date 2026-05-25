@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
   Modal,
+  Linking,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +34,13 @@ import { getLocationData, setManualMockLocation, getManualMockLocation } from '.
 const { width } = Dimensions.get('window');
 
 const HIGH_CONFIDENCE_THRESHOLD = 0.75;
+
+const EMERGENCY_HOTLINES = [
+  { id: 'sos', number: '112', subtitle: 'National Emer...', icon: 'warning', color: '#ef4444', type: 'sms' },
+  { id: 'amb', number: '108', subtitle: 'Ambulance', icon: 'medkit', color: '#f97316', type: 'call' },
+  { id: 'nhai', number: '1033', subtitle: 'NHAI Highway', icon: 'git-network', color: '#3b82f6', type: 'call' },
+  { id: 'pol', number: '100', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
+];
 
 const SERVICES = [
   { id: 'police', name: 'Police', icon: 'shield-checkmark', color: '#3b82f6' },
@@ -197,6 +205,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       console.error("Failed to revert location", e);
     }
     setLocationLoading(false);
+  };
+
+  const handleHotlineTap = (item) => {
+    if (item.type === 'sms') {
+      Linking.openURL(`sms:${item.number}`);
+    } else {
+      Linking.openURL(`tel:${item.number}`);
+    }
   };
 
   useEffect(() => {
@@ -780,6 +796,35 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           </View>
         )}
 
+        {/* Emergency Numbers Block */}
+        <Text style={[styles.sectionTitle, { fontSize: 14, color: '#64748b', marginTop: 12, marginBottom: 8 }]}>EMERGENCY NUMBERS</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hotlinesScroll}>
+          {EMERGENCY_HOTLINES.map(hotline => (
+            <TouchableOpacity 
+              key={hotline.id} 
+              style={[styles.hotlineCard, { borderColor: hotline.color }]} 
+              onPress={() => handleHotlineTap(hotline)}
+            >
+              <View style={[styles.hotlineIconWrap, { backgroundColor: hotline.id === 'sos' ? hotline.color : 'transparent' }]}>
+                {hotline.id === 'sos' ? (
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 10 }}>SOS</Text>
+                ) : (
+                  <Ionicons name={hotline.icon} size={20} color={hotline.color} />
+                )}
+              </View>
+              <Text style={[styles.hotlineNumber, { color: hotline.color }]}>{hotline.number}</Text>
+              <Text style={styles.hotlineSubtitle} numberOfLines={1}>{hotline.subtitle}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity
+          style={styles.findNearbyBtn}
+          onPress={() => onNavigateToMap()}
+        >
+          <Text style={styles.findNearbyText}>Find Nearby Help</Text>
+        </TouchableOpacity>
+
         {/* Voice / Text Buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity
@@ -948,6 +993,33 @@ const styles = StyleSheet.create({
   confirmServiceText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1e293b' },
   confirmDismiss: { alignItems: 'center', marginTop: 4 },
   confirmDismissText: { color: '#94a3b8', fontSize: 13 },
+
+  hotlinesScroll: { paddingRight: 20, marginBottom: 16, gap: 12 },
+  hotlineCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    width: width * 0.26, // Roughly 3.5 items visible
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  hotlineIconWrap: {
+    width: 28, height: 28, borderRadius: 6,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+  },
+  hotlineNumber: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
+  hotlineSubtitle: { fontSize: 10, color: '#94a3b8', textAlign: 'center' },
+
+  findNearbyBtn: {
+    backgroundColor: '#dc2626',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
+  },
+  findNearbyText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
   actionRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   actionBtn: {

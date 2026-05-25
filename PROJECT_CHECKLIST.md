@@ -31,6 +31,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Nearest Medical Facility Routing**: When both trauma center and hospital are classified, deduplicate and route the user to ONLY the single nearest available medical facility to avoid map confusion.
 - [x] **All languages integration (Partial)**: A few languages are successfully integrated for input audio and prompts.
 - [x] **Manual Location Override**: Hidden developer menu (5 taps on title) added to cycle global mock locations for presentation/testing.
+- [x] **Emergency Hotlines Configuration**: UI block added with SMS/Call shortcuts (112, 108, 1033, 100).
 ---
 
 ## 🚧 Remaining Tasks
@@ -46,11 +47,6 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 - [ ] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
   - *Assignee:* [ Unassigned ]
-
-
-### 🏥 Facilities & Services
-- [ ] **Emergency Hotlines Configuration**: Configure specific hotlines (e.g., 112 for SMS, 100/11 etc. for calling) based on previous UI design.
-  - *Assignee:* [ Vibha ]
 
 
 ### ⚙️ Dispatch Logic & Overrides
