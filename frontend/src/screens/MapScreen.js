@@ -399,7 +399,11 @@ export default function MapScreen({ onBack }) {
 
   // ── Apply AI classification on mount ─────────────────────────
   useEffect(() => {
-    if (!classification?.specific_facilities?.length) return;
+    if (!classification?.specific_facilities?.length) {
+      // When classification is cleared (no emergency), default to trauma centres
+      setActiveFilter('trauma');
+      return;
+    }
 
     const primaryType = getPrimaryFacilityType(classification.specific_facilities);
     const filterId = facilityTypeToFilter(primaryType);

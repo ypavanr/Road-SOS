@@ -171,6 +171,13 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   const [showMockMap, setShowMockMap] = useState(false);
   const [tempMockCoord, setTempMockCoord] = useState(null);
 
+  // Service Modal State
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [selectedServiceForModal, setSelectedServiceForModal] = useState(null);
+
+  // SMS Confirmation Modal State
+  const [showSOSSMSModal, setShowSOSSMSModal] = useState(false);
+
   const handleSecretTap = async () => {
     setSecretTapCount(prev => prev + 1);
     
@@ -233,10 +240,21 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   };
 
   const handleHotlineTap = (item) => {
-    if (item.type === 'sms') {
+    // If it's the SOS hotline (first one), show SMS confirmation modal
+    if (item.id === 'sos') {
+      setShowSOSSMSModal(true);
+    } else if (item.type === 'sms') {
       Linking.openURL(`sms:${item.number}`);
     } else {
       Linking.openURL(`tel:${item.number}`);
+    }
+  };
+
+  const handleConfirmSOSSMS = async () => {
+    setShowSOSSMSModal(false);
+    const sosHotline = regionalHotlines.find(h => h.id === 'sos');
+    if (sosHotline && sosHotline.type === 'sms') {
+      Linking.openURL(`sms:${sosHotline.number}`);
     }
   };
 
@@ -614,6 +632,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     }
   };
 
+  const handleCancelRecording = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      await stopRecording();
+      setTranslation('');
+    }
+  };
+
   // ── Manual service card tap → navigate directly and send SMS ───────────────
   const dispatchServiceSMS = async (serviceId, attachmentUri = null) => {
     let currentLoc = location;
@@ -702,27 +728,20 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   const handleServiceTap = async (serviceId) => {
     clearEmergency();
     setSelectedService(serviceId);
+    setSelectedServiceForModal(serviceId);
+    setShowServiceModal(true);
+  };
 
-    // Prompt user for attaching photo
-    Alert.alert(
-      'Attach Incident Photo',
-      'Would you like to capture or select a photo of the incident to send to the trauma centre?',
-      [
-        {
-          text: 'Take Photo',
-          onPress: () => handlePhotoSelection(serviceId, 'camera'),
-        },
-        {
-          text: 'Choose from Gallery',
-          onPress: () => handlePhotoSelection(serviceId, 'gallery'),
-        },
-        {
-          text: 'Send Text Only',
-          onPress: () => dispatchServiceSMS(serviceId, null),
-        },
-      ],
-      { cancelable: true }
-    );
+  const handleServiceModalConfirm = async (serviceId, photoType) => {
+    setShowServiceModal(false);
+    
+    if (photoType === 'camera') {
+      await handlePhotoSelection(serviceId, 'camera');
+    } else if (photoType === 'gallery') {
+      await handlePhotoSelection(serviceId, 'gallery');
+    } else {
+      await dispatchServiceSMS(serviceId, null);
+    }
 
     if (preloadPromiseRef.current) {
       setContextLoadingMsg('Waiting for preloaded data...');
@@ -853,27 +872,47 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
         {/* Voice / Text Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.voiceBtn, isRecording && { backgroundColor: '#7f1d1d' }]}
-            onPress={handleRecordSOS}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Ionicons name={isRecording ? 'square' : 'mic'} size={24} color="#fff" />
-            )}
-            <Text style={[styles.actionText, { color: '#fff' }]}>
-              {isRecording ? t('stop', 'STOP') : t('start_voice_sos', 'VOICE')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.textBtn, isTextInputMode && { backgroundColor: '#f1f5f9' }]}
-            onPress={() => setIsTextInputMode(!isTextInputMode)}
-          >
-            <Ionicons name="chatbubble" size={24} color="#0f172a" />
-            <Text style={styles.actionText}>{isTextInputMode ? t('cancel', 'CANCEL') : t('start_text_sos', 'TEXT')}</Text>
-          </TouchableOpacity>
+          {isRecording ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.voiceBtn, { backgroundColor: '#7f1d1d' }]}
+                onPress={handleRecordSOS}
+                disabled={loading}
+              >
+                <Ionicons name="square" size={24} color="#fff" />
+                <Text style={[styles.actionText, { color: '#fff' }]}>{t('stop', 'STOP')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: '#dc2626', flex: 1 }]}
+                onPress={handleCancelRecording}
+              >
+                <Ionicons name="close" size={24} color="#fff" />
+                <Text style={[styles.actionText, { color: '#fff' }]}>{t('cancel', 'CANCEL')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.voiceBtn]}
+                onPress={handleRecordSOS}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Ionicons name="mic" size={24} color="#fff" />
+                )}
+                <Text style={[styles.actionText, { color: '#fff' }]}>{t('start_voice_sos', 'VOICE')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.textBtn, isTextInputMode && { backgroundColor: '#f1f5f9' }]}
+                onPress={() => setIsTextInputMode(!isTextInputMode)}
+              >
+                <Ionicons name="chatbubble" size={24} color="#0f172a" />
+                <Text style={styles.actionText}>{isTextInputMode ? t('cancel', 'CANCEL') : t('start_text_sos', 'TEXT')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Translation / Text Input Box */}
@@ -889,9 +928,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
                 value={manualText}
                 onChangeText={setManualText}
               />
-              <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
-                <Text style={styles.submitBtnText}>{t('submit', 'CLASSIFY TEXT')}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity style={[styles.submitBtn, { flex: 1 }]} onPress={handleManualSubmit}>
+                  <Text style={styles.submitBtnText}>{t('submit', 'SUBMIT')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: '#dc2626' }]} onPress={() => { setIsTextInputMode(false); setManualText(''); }}>
+                  <Text style={styles.submitBtnText}>{t('cancel', 'CANCEL')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
             <>
@@ -921,11 +965,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         {/* Map Button */}
         <View style={styles.footerContainer}>
           <TouchableOpacity style={styles.mapBtn} onPress={async () => {
-            if (preloadPromiseRef.current) {
-              setContextLoadingMsg('Waiting for preloaded data...');
-              await preloadPromiseRef.current;
-              setContextLoadingMsg(null);
-            }
+            // Clear any previous emergency classification
+            clearEmergency();
+            // Navigate to map to show preloaded facilities
             onNavigateToMap();
           }}>
             <Text style={styles.mapBtnText}>{t('emergency_map', 'Go to Map View')}</Text>
@@ -969,6 +1011,73 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      {/* Emergency Service Modal */}
+      <Modal visible={showServiceModal} animationType="fade" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 0, width: '100%', maxWidth: 320 }}>
+            {/* Header with Cancel Button */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>Attach Incident Photo</Text>
+              <TouchableOpacity onPress={() => setShowServiceModal(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <View style={{ padding: 16 }}>
+              <Text style={{ fontSize: 14, color: '#475569', marginBottom: 16, lineHeight: 20 }}>
+                Would you like to capture or select a photo of the incident to send to the trauma centre?
+              </Text>
+
+              {/* Buttons */}
+              <View style={{ gap: 12 }}>
+                <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#2563eb' }]} onPress={() => handleServiceModalConfirm(selectedServiceForModal, 'camera')}>
+                  <Text style={styles.submitBtnText}>Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#2563eb' }]} onPress={() => handleServiceModalConfirm(selectedServiceForModal, 'gallery')}>
+                  <Text style={styles.submitBtnText}>Choose from Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#2563eb' }]} onPress={() => handleServiceModalConfirm(selectedServiceForModal, 'textonly')}>
+                  <Text style={styles.submitBtnText}>Send Text Only</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SOS SMS Confirmation Modal */}
+      <Modal visible={showSOSSMSModal} animationType="fade" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 0, width: '100%', maxWidth: 320 }}>
+            {/* Header with Cancel Button */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>Send SOS SMS</Text>
+              <TouchableOpacity onPress={() => setShowSOSSMSModal(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <View style={{ padding: 16 }}>
+              <Text style={{ fontSize: 14, color: '#475569', marginBottom: 16, lineHeight: 20 }}>
+                Do you want to send an SOS SMS alert to emergency services at your current location?
+              </Text>
+
+              {/* Buttons */}
+              <View style={{ gap: 12, flexDirection: 'row' }}>
+                <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: '#2563eb' }]} onPress={handleConfirmSOSSMS}>
+                  <Text style={styles.submitBtnText}>Yes, Send SMS</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: '#ef4444' }]} onPress={() => setShowSOSSMSModal(false)}>
+                  <Text style={styles.submitBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
