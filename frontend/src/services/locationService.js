@@ -21,8 +21,17 @@ export const getLocationData = async () => {
     batteryLevel = Math.round(level * 100);
   } catch (_) {}
 
+  let isoCountryCode = null;
+
   if (dynamicMock && dynamicMock.lat !== null && dynamicMock.lon !== null) {
     console.log(`⚠️ USING FAKE MOCK LOCATION: ${dynamicMock.name} ⚠️`);
+    try {
+      const geocode = await Location.reverseGeocodeAsync({ latitude: dynamicMock.lat, longitude: dynamicMock.lon });
+      if (geocode && geocode.length > 0) {
+        isoCountryCode = geocode[0].isoCountryCode;
+      }
+    } catch(e) {}
+
     return {
       latitude: dynamicMock.lat,
       longitude: dynamicMock.lon,
@@ -32,6 +41,7 @@ export const getLocationData = async () => {
       batteryLevel,
       deviceModel: Device.modelName || Device.deviceName || 'Unknown Device',
       isMock: true,
+      isoCountryCode,
     };
   }
 
@@ -42,11 +52,33 @@ export const getLocationData = async () => {
   }
 
   // Get current position with high accuracy
-  const location = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.BestForNavigation,
-    maximumAge: 5000,
-    timeout: 15000,
-  });
+  let location;
+  try {
+    location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.BestForNavigation,
+      maximumAge: 5000,
+      timeout: 15000,
+    });
+  } catch (err) {
+    console.warn("GPS lock failed, falling back to last known position:", err.message);
+    location = await Location.getLastKnownPositionAsync();
+    
+    // If still fails (e.g. emulator with no history), provide a default fallback
+    if (!location) {
+      console.warn("No last known position available. Using fallback location.");
+      location = {
+        coords: { latitude: 12.9716, longitude: 77.5946, accuracy: 100, altitude: 0 },
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  try {
+    const geocode = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+    if (geocode && geocode.length > 0) {
+      isoCountryCode = geocode[0].isoCountryCode;
+    }
+  } catch(e) {}
 
   return {
     latitude:     location.coords.latitude,
@@ -56,5 +88,6 @@ export const getLocationData = async () => {
     timestamp:    location.timestamp,
     batteryLevel,
     deviceModel:  Device.modelName || Device.deviceName || 'Unknown Device',
+    isoCountryCode,
   };
 };

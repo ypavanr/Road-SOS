@@ -387,18 +387,9 @@ export default function MapScreen({ onBack }) {
   useEffect(() => {
     (async () => {
       try {
-        // Verify if a mock location override is active
         const locServiceData = await getLocationData();
-        if (locServiceData && locServiceData.isMock) {
+        if (locServiceData) {
           setUserLocation({ latitude: locServiceData.latitude, longitude: locServiceData.longitude, accuracy: locServiceData.accuracy });
-          return;
-        }
-
-        // Otherwise, use MapScreen's original independent tracker
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
-          setUserLocation(loc.coords);
         }
       } catch (e) {
         console.error("MapScreen location error:", e);

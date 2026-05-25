@@ -26,7 +26,16 @@ const buildSMSBody = ({ latitude, longitude, accuracy, timestamp }, userInfo, cu
   return body;
 };
 
-export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = [], userRole = 'victim', customText = null, audioPath = null, attachmentUri = null) => {
+export const sendSOSViaSMS = async (
+  locationData, 
+  userData, 
+  additionalNumbers = [], 
+  userRole = 'victim', 
+  customText = null, 
+  audioPath = null, 
+  attachmentUri = null,
+  isPoliceInvolved = false
+) => {
   const isAvailable = await SMS.isAvailableAsync();
   if (!isAvailable) {
     throw new Error('SMS is not available on this device.');
@@ -47,7 +56,8 @@ export const sendSOSViaSMS = async (locationData, userData, additionalNumbers = 
   let validNumbers = [];
 
   // Role-Based SMS Routing: If Bystander -> do NOT send to emergency contacts
-  if (userRole !== 'bystander') {
+  // Context-Aware Dispatch: If Police Involved -> do NOT send to emergency contacts (protect them from dangerous situations)
+  if (userRole !== 'bystander' && !isPoliceInvolved) {
     if (activeUserData && activeUserData.emergencyContacts) {
       validNumbers = activeUserData.emergencyContacts
         .map(c => c.phone)

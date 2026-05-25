@@ -30,17 +30,11 @@ import {
 } from '../context/EmergencyContext';
 import { verifyOnlineStatusViaWebSocket } from '../services/networkService';
 import { getLocationData, setManualMockLocation, getManualMockLocation } from '../services/locationService';
+import { getRegionalConfig } from '../config/regionalConfig';
 
 const { width } = Dimensions.get('window');
 
 const HIGH_CONFIDENCE_THRESHOLD = 0.75;
-
-const EMERGENCY_HOTLINES = [
-  { id: 'sos', number: '112', subtitle: 'National Emer...', icon: 'warning', color: '#ef4444', type: 'sms' },
-  { id: 'amb', number: '108', subtitle: 'Ambulance', icon: 'medkit', color: '#f97316', type: 'call' },
-  { id: 'nhai', number: '1033', subtitle: 'NHAI Highway', icon: 'git-network', color: '#3b82f6', type: 'call' },
-  { id: 'pol', number: '100', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
-];
 
 const SERVICES = [
   { id: 'police', name: 'Police', icon: 'shield-checkmark', color: '#3b82f6' },
@@ -118,9 +112,9 @@ import { LanguageSelector } from '../components/LanguageSelector/LanguageSelecto
 export default function HomeScreen({ onNavigateToMap, userData }) {
   const { t } = useLanguage();
   const {
-    setClassification,
     facilities,
     setFacilities,
+    setClassification,
     setSelectedService,
     setIsEmergencyMode,
     setLoadingMessage,
@@ -130,6 +124,31 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   } = useEmergency();
 
   const [location, setLocation] = useState(null);
+  const [regionalHotlines, setRegionalHotlines] = useState([]);
+
+  // When location changes, update regional hotlines
+  useEffect(() => {
+    if (location?.coords?.isoCountryCode) {
+      const rConfig = getRegionalConfig(location.coords.isoCountryCode);
+      const hotlinesArray = [
+        { id: 'sos', ...rConfig.hotlines.sos },
+        { id: 'amb', ...rConfig.hotlines.ambulance },
+        { id: 'nhai', ...rConfig.hotlines.highway },
+        { id: 'pol', ...rConfig.hotlines.police }
+      ];
+      setRegionalHotlines(hotlinesArray);
+    } else {
+      const rConfig = getRegionalConfig('DEFAULT');
+      const hotlinesArray = [
+        { id: 'sos', ...rConfig.hotlines.sos },
+        { id: 'amb', ...rConfig.hotlines.ambulance },
+        { id: 'nhai', ...rConfig.hotlines.highway },
+        { id: 'pol', ...rConfig.hotlines.police }
+      ];
+      setRegionalHotlines(hotlinesArray);
+    }
+  }, [location?.coords?.isoCountryCode]);
+
   const [locationLoading, setLocationLoading] = useState(true);
   const [translation, setTranslation] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -185,6 +204,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       try {
         const loc = await getLocationData();
         setLocation({ coords: loc });
+        setFacilities([]); // Clear old facilities for new location
+        preloadPromiseRef.current = preloadFacilities(loc.latitude, loc.longitude);
+        updateCacheIfNeeded(loc.latitude, loc.longitude);
       } catch (e) {
         console.error("Failed to load mock location", e);
       }
@@ -201,6 +223,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     try {
       const loc = await getLocationData();
       setLocation({ coords: loc });
+      setFacilities([]); // Clear old facilities for new location
+      preloadPromiseRef.current = preloadFacilities(loc.latitude, loc.longitude);
+      updateCacheIfNeeded(loc.latitude, loc.longitude);
     } catch (e) {
       console.error("Failed to revert location", e);
     }
@@ -226,8 +251,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setLocation({ coords: loc });
       setLocationLoading(false);
       if (loc) {
-        preloadPromiseRef.current = preloadFacilities(loc.coords.latitude, loc.coords.longitude);
-        updateCacheIfNeeded(loc.coords.latitude, loc.coords.longitude);
+        preloadPromiseRef.current = preloadFacilities(loc.latitude, loc.longitude);
+        updateCacheIfNeeded(loc.latitude, loc.longitude);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -407,7 +432,12 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       // Auto-Dispatch SMS based on AI classification
       const targetPhones = [];
       const reqFacilities = data.specific_facilities || [];
+      let isPoliceInvolved = false;
+
       reqFacilities.forEach(fac => {
+        if (fac === 'police_station' || fac === 'police') {
+          isPoliceInvolved = true;
+        }
         const phone = SERVICE_TO_PHONE[fac] || SERVICE_TO_PHONE[facilityTypeToFilter(fac)];
         if (phone) targetPhones.push(phone);
       });
@@ -419,7 +449,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           targetPhones,
           data.user_role || 'victim',
           data.explanation || 'Emergency classified by AI',
-          null
+          null,
+          null,
+          isPoliceInvolved
         ).catch((err) => console.error('AI automatic SMS failed:', err));
       }
 
@@ -588,7 +620,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        currentLoc = await Location.getCurrentPositionAsync({});
+        const locData = await getLocationData();
+        currentLoc = { coords: locData, timestamp: locData.timestamp };
         setLocation(currentLoc);
       }
     } catch (e) {
@@ -799,7 +832,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         {/* Emergency Numbers Block */}
         <Text style={[styles.sectionTitle, { fontSize: 14, color: '#64748b', marginTop: 12, marginBottom: 8 }]}>EMERGENCY NUMBERS</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hotlinesScroll}>
-          {EMERGENCY_HOTLINES.map(hotline => (
+          {regionalHotlines.map(hotline => (
             <TouchableOpacity 
               key={hotline.id} 
               style={[styles.hotlineCard, { borderColor: hotline.color }]} 
@@ -817,13 +850,6 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
             </TouchableOpacity>
           ))}
         </ScrollView>
-
-        <TouchableOpacity
-          style={styles.findNearbyBtn}
-          onPress={() => onNavigateToMap()}
-        >
-          <Text style={styles.findNearbyText}>Find Nearby Help</Text>
-        </TouchableOpacity>
 
         {/* Voice / Text Buttons */}
         <View style={styles.actionRow}>
@@ -1010,16 +1036,6 @@ const styles = StyleSheet.create({
   },
   hotlineNumber: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
   hotlineSubtitle: { fontSize: 10, color: '#94a3b8', textAlign: 'center' },
-
-  findNearbyBtn: {
-    backgroundColor: '#dc2626',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
-  },
-  findNearbyText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
   actionRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   actionBtn: {

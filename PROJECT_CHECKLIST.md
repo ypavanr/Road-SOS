@@ -32,6 +32,8 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **All languages integration (Partial)**: A few languages are successfully integrated for input audio and prompts.
 - [x] **Manual Location Override**: Hidden developer menu (5 taps on title) added to cycle global mock locations for presentation/testing.
 - [x] **Emergency Hotlines Configuration**: UI block added with SMS/Call shortcuts (112, 108, 1033, 100).
+- [x] **Context-Aware Nearby Dispatch**: Prevent sending alerts to emergency contacts (and bystanders) if AI classification detects police involvement to protect their safety.
+- [x] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
 ---
 
 ## 🚧 Remaining Tasks
@@ -45,15 +47,10 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [ Kept for easier understanding ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
   - *Assignee:* [ Unassigned ]
 
-- [ ] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
-  - *Assignee:* [ Unassigned ]
-
 
 ### ⚙️ Dispatch Logic & Overrides
 - [On Hold] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
-  - *Assignee:* [ Vibha ]
-- [ ] **Context-Aware Nearby Dispatch**: Send SMS to nearby people generally, but prevent sending alerts to nearby people if AI classification detects a police involved (to protect their safety...test for terrorist as well).
   - *Assignee:* [ Vibha ]
 - [ ] **Geohash Proximity Notifications**: Research and implement Geohash/Grid-based topic subscriptions (e.g., via Firebase Cloud Messaging) to dynamically push notifications to active app users located physically near the accident zone.
   - *Assignee:* [ Unassigned ]
