@@ -280,6 +280,7 @@ const AITriageCard = ({ classification }) => {
 export default function MapScreen({ onBack }) {
   const {
     classification,
+    setClassification,
     facilities,
     setFacilities,
     selectedService,
@@ -339,6 +340,41 @@ export default function MapScreen({ onBack }) {
 
     return rawBest;
   }, [classification, facilities]);
+
+  // ── Deduplicate Medical Facilities ───────────────────────────────────────────
+  // If the classifier returns multiple medical types, find the closest one 
+  // after facilities are fetched and keep only that one.
+  useEffect(() => {
+    if (!classification?.specific_facilities || facilities.length === 0) return;
+    
+    const medKeys = ['trauma_center', 'hospital', 'clinic'];
+    const requestedMed = classification.specific_facilities.filter(f => medKeys.includes(f));
+    
+    if (requestedMed.length > 1) {
+      let bestMedKey = requestedMed[0];
+      let bestMedVal = Infinity;
+      
+      for (const key of requestedMed) {
+        const matches = facilities.filter(f => f.type === key);
+        if (matches.length > 0) {
+          const minVal = Math.min(...matches.map(m => m.distance_km || Infinity));
+          if (minVal < bestMedVal) {
+            bestMedVal = minVal;
+            bestMedKey = key;
+          }
+        }
+      }
+      
+      const newSpecific = classification.specific_facilities.filter(f => !medKeys.includes(f) || f === bestMedKey);
+      
+      if (newSpecific.length !== classification.specific_facilities.length) {
+         setClassification({
+           ...classification,
+           specific_facilities: newSpecific
+         });
+      }
+    }
+  }, [classification, facilities, setClassification]);
 
   // ── Location ────────────────────────────────────────────────
   useEffect(() => {
@@ -835,6 +871,7 @@ export default function MapScreen({ onBack }) {
           {/* Primary Route Polyline */}
           {polylineCoords.length > 1 && (
             <Polyline
+              key={`primary-route-${selectedFacility?.id || 'default'}`}
               coordinates={polylineCoords}
               strokeColor={routeColor}
               strokeWidth={4}
