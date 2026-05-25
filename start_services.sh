@@ -75,6 +75,38 @@ echo -e "${CYAN}   🚨  Road SOS — Service Launcher       ${NC}"
 echo -e "${CYAN}════════════════════════════════════════${NC}"
 echo ""
 
+# ── Auto-update EXPO_PUBLIC_BASE_IP in frontend/.env ───────────
+LOCAL_IP=$(python3 -c "
+import socket
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(('10.255.255.255', 1))
+    print(s.getsockname()[0])
+except Exception:
+    print('127.0.0.1')
+finally:
+    s.close()
+" 2>/dev/null)
+
+if [ -n "$LOCAL_IP" ] && [ "$LOCAL_IP" != "127.0.0.1" ]; then
+  ENV_FILE="$ROOT/frontend/.env"
+  if [ -f "$ENV_FILE" ]; then
+    info "Auto-updating EXPO_PUBLIC_BASE_IP to $LOCAL_IP in frontend/.env"
+    if grep -q "^EXPO_PUBLIC_BASE_IP=" "$ENV_FILE"; then
+      awk -v ip="$LOCAL_IP" '/^EXPO_PUBLIC_BASE_IP=/{print "EXPO_PUBLIC_BASE_IP="ip; next} 1' "$ENV_FILE" > "${ENV_FILE}.tmp"
+      mv "${ENV_FILE}.tmp" "$ENV_FILE"
+    else
+      echo "EXPO_PUBLIC_BASE_IP=$LOCAL_IP" >> "$ENV_FILE"
+    fi
+  else
+    warn "frontend/.env not found, creating one with EXPO_PUBLIC_BASE_IP=$LOCAL_IP"
+    echo "EXPO_PUBLIC_BASE_IP=$LOCAL_IP" > "$ENV_FILE"
+  fi
+else
+  warn "Could not determine local IP automatically."
+fi
+echo ""
+
 # ── 1. Hospital Service (port 8001) ──────────────────────────
 start_service \
   "hospital-service" 8001 \
