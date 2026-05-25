@@ -811,11 +811,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 12,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
+    flexWrap: 'wrap',
   },
   coordText: { fontSize: 14, fontWeight: '600', color: '#475569', letterSpacing: 0.5 },
 
