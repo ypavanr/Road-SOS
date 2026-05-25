@@ -10,7 +10,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,7 +28,7 @@ import {
   rankFacility,
 } from '../context/EmergencyContext';
 import { verifyOnlineStatusViaWebSocket } from '../services/networkService';
-import { getLocationData, cycleMockLocation } from '../services/locationService';
+import { getLocationData, setManualMockLocation, getManualMockLocation } from '../services/locationService';
 
 const { width } = Dimensions.get('window');
 
@@ -137,6 +139,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   // Hidden developer tap state
   const [secretTapCount, setSecretTapCount] = useState(0);
   const secretTapTimer = useRef(null);
+  
+  // Mock Map Modal State
+  const [showMockMap, setShowMockMap] = useState(false);
+  const [tempMockCoord, setTempMockCoord] = useState(null);
 
   const handleSecretTap = async () => {
     setSecretTapCount(prev => prev + 1);
@@ -146,12 +152,27 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setSecretTapCount(0);
     }, 1500);
 
-    if (secretTapCount >= 4) {
-      const newMock = cycleMockLocation();
-      Alert.alert('Developer Mode', `Location switched to: ${newMock.name}\n(Will apply on next refresh)`);
+    // Double tap triggers modal
+    if (secretTapCount >= 1) {
+      const currentMock = getManualMockLocation();
+      if (currentMock) {
+        setTempMockCoord({ latitude: currentMock.lat, longitude: currentMock.lon });
+      } else if (location?.coords) {
+        setTempMockCoord({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+      } else {
+        setTempMockCoord({ latitude: 12.9716, longitude: 77.5946 }); // fallback Bangalore
+      }
+      setShowMockMap(true);
       setSecretTapCount(0);
+    }
+  };
+
+  const handleSaveMockMap = async () => {
+    if (tempMockCoord) {
+      setManualMockLocation(tempMockCoord.latitude, tempMockCoord.longitude);
+      setShowMockMap(false);
+      Alert.alert('Developer Mode', 'Custom manual location set successfully!\n(Applies on next map fetch)');
       
-      // Force refresh location
       setLocationLoading(true);
       try {
         const loc = await getLocationData();
@@ -161,6 +182,21 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       }
       setLocationLoading(false);
     }
+  };
+
+  const handleClearMockMap = async () => {
+    setManualMockLocation(null, null);
+    setShowMockMap(false);
+    Alert.alert('Developer Mode', 'Mock location cleared. Reverting to physical GPS.');
+    
+    setLocationLoading(true);
+    try {
+      const loc = await getLocationData();
+      setLocation({ coords: loc });
+    } catch (e) {
+      console.error("Failed to revert location", e);
+    }
+    setLocationLoading(false);
   };
 
   useEffect(() => {
@@ -826,6 +862,43 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Developer Mock Map Modal */}
+      <Modal visible={showMockMap} animationType="slide" transparent={false}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700' }}>Developer: Set Mock Pin</Text>
+            <TouchableOpacity onPress={() => setShowMockMap(false)}>
+              <Ionicons name="close" size={28} color="#0f172a" />
+            </TouchableOpacity>
+          </View>
+          {tempMockCoord && (
+            <MapView
+              style={{ flex: 1 }}
+              initialRegion={{
+                latitude: tempMockCoord.latitude,
+                longitude: tempMockCoord.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              }}
+              onRegionChangeComplete={(region) => setTempMockCoord(region)}
+            >
+              <Marker coordinate={{ latitude: tempMockCoord.latitude, longitude: tempMockCoord.longitude }} />
+            </MapView>
+          )}
+          <View style={{ padding: 16, gap: 12, backgroundColor: '#fff', paddingBottom: 32 }}>
+            <Text style={{ textAlign: 'center', color: '#64748b' }}>
+              Drag the map to move the mock GPS pin.
+            </Text>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveMockMap}>
+              <Text style={styles.submitBtnText}>Save Custom Location</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#ef4444' }]} onPress={handleClearMockMap}>
+              <Text style={styles.submitBtnText}>Clear Mock (Use Real GPS)</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
