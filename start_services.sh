@@ -76,7 +76,12 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 # ── Auto-update EXPO_PUBLIC_BASE_IP in frontend/.env ───────────
-LOCAL_IP=$(python3 -c "
+PYTHON_CMD="python"
+if ! command -v python >/dev/null 2>&1; then
+  PYTHON_CMD="python3"
+fi
+
+LOCAL_IP=$($PYTHON_CMD -c "
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -86,7 +91,7 @@ except Exception:
     print('127.0.0.1')
 finally:
     s.close()
-" 2>/dev/null)
+" 2>/dev/null || echo "127.0.0.1")
 
 if [ -n "$LOCAL_IP" ] && [ "$LOCAL_IP" != "127.0.0.1" ]; then
   ENV_FILE="$ROOT/frontend/.env"

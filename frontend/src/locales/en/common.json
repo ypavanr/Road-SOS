@@ -1,0 +1,23 @@
+{
+  "emergency_dashboard": "Emergency Dashboard",
+  "offline_mode_active": "Offline Mode: Using Local Fallback",
+  "ai_triage": "Possible Emergency Services",
+  "ai_triage_assessment": "AI confidence is low. Please confirm which services you need:",
+  "cancel": "Cancel",
+  "all_of_the_above": "All of the above",
+  "start_voice_sos": "VOICE",
+  "start_text_sos": "TEXT",
+  "type_emergency": "Type your emergency here...",
+  "submit": "CLASSIFY TEXT",
+  "translation_of_voice": "Translation of voice",
+  "emergency_services": "Emergency Services",
+  "emergency_map": "Go to Map View",
+  "hospital": "Hospital",
+  "police": "Police",
+  "fire": "Fire",
+  "towing": "Towing",
+  "tyre": "Puncture",
+  "fuel": "Fuel",
+  "showroom": "Showroom",
+  "trauma": "Trauma"
+}

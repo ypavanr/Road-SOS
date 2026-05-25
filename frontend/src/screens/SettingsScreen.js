@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../core/i18n/hooks/useLanguage';
 
 export default function SettingsScreen() {
+  const { t } = useLanguage();
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#080808" />

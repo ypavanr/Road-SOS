@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,7 +52,7 @@ const SERVICE_TO_PHONE = {
   tyre: FIRE_PHONE,
   fuel: HOSPITAL_PHONE,
   showroom: POLICE_PHONE,
-  
+
   // Classifier Keys
   trauma_center: TRAUMA_PHONE,
   clinic: HOSPITAL_PHONE,
@@ -101,8 +101,11 @@ const LOADING_MESSAGES = [
 import { updateCacheIfNeeded, getCachedFacilities } from '../services/cacheService';
 import { enqueueSOS } from '../services/offlineQueueService';
 import * as SMS from 'expo-sms';
+import { useLanguage } from '../core/i18n/hooks/useLanguage';
+import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 
 export default function HomeScreen({ onNavigateToMap, userData }) {
+  const { t } = useLanguage();
   const {
     setClassification,
     facilities,
@@ -145,7 +148,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         updateCacheIfNeeded(loc.coords.latitude, loc.coords.longitude);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Background Cache Refresh Interval
@@ -211,9 +214,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
       while (currentRadius <= MAX_RADIUS) {
         setContextLoadingMsg(`Searching within ${currentRadius / 1000}km...`);
-        const bodyObj = { 
-          lat, 
-          lon, 
+        const bodyObj = {
+          lat,
+          lon,
           radius_m: currentRadius,
           patient_gender: clsData?.patient_gender,
           patient_demographic: clsData?.patient_demographic,
@@ -243,13 +246,13 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
         let stillMissing = false;
         for (const type of missingTypes) {
-           const matching = allFacilities.filter(f => f.type === type);
-           if (matching.length < 2) {
-             stillMissing = true;
-             break;
-           }
+          const matching = allFacilities.filter(f => f.type === type);
+          if (matching.length < 2) {
+            stillMissing = true;
+            break;
+          }
         }
-        
+
         if (!stillMissing) break;
         currentRadius += 5000; // Increment by 5km
       }
@@ -289,34 +292,34 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setContextLoadingMsg('Checking preloaded data...');
       let currentFacilities = facilities;
       if (preloadPromiseRef.current) {
-         currentFacilities = await preloadPromiseRef.current;
+        currentFacilities = await preloadPromiseRef.current;
       }
-      
-      const isSpecialized = (data.patient_demographic && data.patient_demographic !== 'adult') || 
-                            (data.injury_type && data.injury_type !== 'general');
+
+      const isSpecialized = (data.patient_demographic && data.patient_demographic !== 'adult') ||
+        (data.injury_type && data.injury_type !== 'general');
       const missingTypes = [];
-      
+
       if (!isSpecialized) {
         for (const requiredType of (data.specific_facilities || [])) {
-           const matching = currentFacilities.filter(f => f.type === requiredType);
-           if (matching.length < 2) { 
-               missingTypes.push(requiredType);
-           }
+          const matching = currentFacilities.filter(f => f.type === requiredType);
+          if (matching.length < 2) {
+            missingTypes.push(requiredType);
+          }
         }
       } else {
         // If specialized, ignore preloaded general facilities to force a strict API fetch
         currentFacilities = [];
         for (const requiredType of (data.specific_facilities || [])) {
-           missingTypes.push(requiredType);
+          missingTypes.push(requiredType);
         }
       }
 
       let updatedFacilities = currentFacilities;
       if (missingTypes.length > 0) {
-         const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities, data);
-         if (fetched && fetched.length > 0) {
-           updatedFacilities = fetched;
-         }
+        const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities, data);
+        if (fetched && fetched.length > 0) {
+          updatedFacilities = fetched;
+        }
       }
 
       // Auto-Dispatch SMS based on AI classification
@@ -352,7 +355,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         const response = await axios.post(`${API_GATEWAY_URL}/classify`, {
           text: textToClassify
         });
-        
+
         const data = response.data;
         setContextLoadingMsg(null);
 
@@ -440,7 +443,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       } else {
         setTranslation('Checking server connection...');
         const isServerOnline = await verifyOnlineStatusViaWebSocket(8000);
-        
+
         if (isServerOnline) {
           handleClassify(manualText, latitude, longitude);
         } else {
@@ -459,14 +462,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       const filePath = await stopRecording();
       if (filePath) {
         if (isOffline) {
-           await handleOfflineSOS(null, filePath);
-           return;
+          await handleOfflineSOS(null, filePath);
+          return;
         }
 
         setLoading(true);
         setTranslation('Checking server connection...');
         const isServerOnline = await verifyOnlineStatusViaWebSocket(8000);
-        
+
         if (!isServerOnline) {
           console.log('Server unreachable via WebSocket. Falling back to offline mode.');
           setLoading(false);
@@ -512,9 +515,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     const targetPhone = SERVICE_TO_PHONE[serviceId];
     if (targetPhone && currentLoc?.coords) {
       sendSOSViaSMS(
-        { 
-          latitude: currentLoc.coords.latitude, 
-          longitude: currentLoc.coords.longitude, 
+        {
+          latitude: currentLoc.coords.latitude,
+          longitude: currentLoc.coords.longitude,
           accuracy: currentLoc.coords.accuracy || 0,
           timestamp: currentLoc.timestamp || Date.now()
         },
@@ -607,9 +610,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     );
 
     if (preloadPromiseRef.current) {
-       setContextLoadingMsg('Waiting for preloaded data...');
-       await preloadPromiseRef.current;
-       setContextLoadingMsg(null);
+      setContextLoadingMsg('Waiting for preloaded data...');
+      await preloadPromiseRef.current;
+      setContextLoadingMsg(null);
     }
     onNavigateToMap();
   };
@@ -632,10 +635,16 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header with Language Selector */}
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>{t('emergency_dashboard', 'Emergency Dashboard')}</Text>
+          <LanguageSelector />
+        </View>
+
         {/* Offline Banner */}
         {isOffline && (
-          <View style={{ backgroundColor: '#ef4444', padding: 8, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Offline Mode: Using Local Fallback</Text>
+          <View style={{ backgroundColor: '#ef4444', padding: 8, alignItems: 'center', borderRadius: 8, marginBottom: 12 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('offline_mode_active', 'Offline Mode: Using Local Fallback')}</Text>
           </View>
         )}
 
@@ -665,10 +674,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           <View style={styles.confirmCard}>
             <View style={styles.confirmHeader}>
               <Ionicons name="alert-circle" size={22} color="#f97316" />
-              <Text style={styles.confirmTitle}>Possible Emergency Services</Text>
+              <Text style={styles.confirmTitle}>{t('ai_triage', 'Possible Emergency Services')}</Text>
             </View>
             <Text style={styles.confirmSubtitle}>
-              AI confidence is low. Please confirm which services you need:
+              {t('ai_triage_assessment', 'AI confidence is low. Please confirm which services you need:')}
             </Text>
             {(pendingClassification.data.specific_facilities || []).map((svc) => (
               <TouchableOpacity
@@ -693,12 +702,12 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
               >
                 <Ionicons name="git-merge" size={18} color="#ef4444" style={{ marginRight: 10 }} />
                 <Text style={[styles.confirmServiceText, { color: '#ef4444', fontWeight: '700' }]}>
-                  All of the above
+                  {t('all_of_the_above', 'All of the above')}
                 </Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={dismissConfirmation} style={styles.confirmDismiss}>
-              <Text style={styles.confirmDismissText}>Dismiss</Text>
+              <Text style={styles.confirmDismissText}>{t('cancel', 'Dismiss')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -716,7 +725,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
               <Ionicons name={isRecording ? 'square' : 'mic'} size={24} color="#fff" />
             )}
             <Text style={[styles.actionText, { color: '#fff' }]}>
-              {isRecording ? 'STOP' : 'VOICE'}
+              {isRecording ? t('stop', 'STOP') : t('start_voice_sos', 'VOICE')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -724,7 +733,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
             onPress={() => setIsTextInputMode(!isTextInputMode)}
           >
             <Ionicons name="chatbubble" size={24} color="#0f172a" />
-            <Text style={styles.actionText}>{isTextInputMode ? 'CANCEL' : 'TEXT'}</Text>
+            <Text style={styles.actionText}>{isTextInputMode ? t('cancel', 'CANCEL') : t('start_text_sos', 'TEXT')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -734,7 +743,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
             <View style={{ width: '100%' }}>
               <TextInput
                 style={styles.textInput}
-                placeholder="Type your emergency here..."
+                placeholder={t('type_emergency', 'Type your emergency here...')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 numberOfLines={3}
@@ -742,19 +751,19 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
                 onChangeText={setManualText}
               />
               <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
-                <Text style={styles.submitBtnText}>CLASSIFY TEXT</Text>
+                <Text style={styles.submitBtnText}>{t('submit', 'CLASSIFY TEXT')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
-              <Text style={styles.translationLabel}>Translation of voice</Text>
+              <Text style={styles.translationLabel}>{t('translation_of_voice', 'Translation of voice')}</Text>
               <Text style={styles.translationValue}>{translation || '...'}</Text>
             </>
           )}
         </View>
 
         {/* Emergency Services Grid */}
-        <Text style={styles.sectionTitle}>Emergency Services</Text>
+        <Text style={styles.sectionTitle}>{t('emergency_services', 'Emergency Services')}</Text>
         <View style={styles.servicesGrid}>
           {SERVICES.map((srv) => (
             <TouchableOpacity
@@ -765,7 +774,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
               <View style={[styles.iconWrap, { backgroundColor: srv.color + '15' }]}>
                 <Ionicons name={srv.icon} size={28} color={srv.color} />
               </View>
-              <Text style={styles.serviceName}>{srv.name}</Text>
+              <Text style={styles.serviceName}>{t(srv.id, srv.name)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -773,14 +782,14 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         {/* Map Button */}
         <View style={styles.footerContainer}>
           <TouchableOpacity style={styles.mapBtn} onPress={async () => {
-             if (preloadPromiseRef.current) {
-                setContextLoadingMsg('Waiting for preloaded data...');
-                await preloadPromiseRef.current;
-                setContextLoadingMsg(null);
-             }
-             onNavigateToMap();
+            if (preloadPromiseRef.current) {
+              setContextLoadingMsg('Waiting for preloaded data...');
+              await preloadPromiseRef.current;
+              setContextLoadingMsg(null);
+            }
+            onNavigateToMap();
           }}>
-            <Text style={styles.mapBtnText}>Go to Map View</Text>
+            <Text style={styles.mapBtnText}>{t('emergency_map', 'Go to Map View')}</Text>
             <Ionicons name="map" size={20} color="#fff" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         </View>
@@ -796,6 +805,17 @@ const styles = StyleSheet.create({
   coordStrip: {
     backgroundColor: '#e2e8f0', borderRadius: 12, padding: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0f172a',
   },
   coordText: { fontSize: 14, fontWeight: '600', color: '#475569', letterSpacing: 0.5 },
 

@@ -28,6 +28,7 @@ import {
   facilityTypeToFilter,
   getPrimaryFacilityType,
 } from '../context/EmergencyContext';
+import { useLanguage } from '../core/i18n/hooks/useLanguage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -164,7 +165,7 @@ function getBestPerServiceType(facilities, specificFacilities, classification) {
   for (const svcType of specificFacilities) {
     const filterId = facilityTypeToFilter(svcType);
     let matches = facilities.filter((f) => f.type === svcType && !usedFacilityIds.has(f.id));
-    
+
     if (matches.length === 0) {
       matches = facilities.filter((f) => f.type === svcType);
     }
@@ -195,6 +196,7 @@ function getBestPerServiceType(facilities, specificFacilities, classification) {
 // ── AI Triage Card Component ──────────────────────────────────────────────────
 
 const AITriageCard = ({ classification }) => {
+  const { t } = useLanguage();
   const [showExplanation, setShowExplanation] = useState(false);
 
   if (!classification) return null;
@@ -214,7 +216,7 @@ const AITriageCard = ({ classification }) => {
       <View style={styles.triageHeader}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Ionicons name={headerIcon} size={20} color={isEmergency ? '#dc2626' : '#64748b'} />
-          <Text style={[styles.triageTitle, { color: headerColor }]}>AI Triage Assessment</Text>
+          <Text style={[styles.triageTitle, { color: headerColor }]}>{t('ai_triage_assessment_title', 'AI Triage Assessment')}</Text>
         </View>
         <View style={[styles.confPill, { backgroundColor: confBg }]}>
           <Text style={[styles.confPillText, { color: confText }]}>
@@ -223,9 +225,9 @@ const AITriageCard = ({ classification }) => {
         </View>
       </View>
 
-      <Text style={[styles.triageEmergencyText, { color: isEmergency ? '#166534' : '#334155' }]}>
-        Emergency: {isEmergency ? '✅ Yes' : '❌ No'}
-      </Text>
+        <Text style={styles.emergencyText}>
+          {t('emergency_label', 'Emergency')}: {isEmergency ? `✅ ${t('yes', 'Yes')}` : `❌ ${t('no', 'No')}`}
+        </Text>
 
       {classification.broad_categories?.length > 0 && (
         <View style={styles.triageCategories}>
@@ -240,23 +242,25 @@ const AITriageCard = ({ classification }) => {
 
       {showExplanation ? (
         <View style={[styles.explanationBox, { backgroundColor: isEmergency ? '#ecfdf5' : '#f1f5f9' }]}>
-          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Why this classification:</Text>
+          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>{t('why_classification', 'Why this classification')}:</Text>
           <Text style={[styles.explanationText, { color: isEmergency ? '#064e3b' : '#334155' }]}>
             {classification.explanation}
           </Text>
-          <TouchableOpacity onPress={() => setShowExplanation(false)} style={{marginTop: 8}}>
-            <Text style={{color: '#2563eb', fontWeight: '600'}}>Hide Explanation</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowExplanation(!showExplanation)} style={{ marginTop: 8 }}>
+          <Text style={{ color: '#2563eb', fontWeight: '600' }}>
+            {showExplanation ? t('hide_ai_explanation', 'Hide AI Explanation') : t('show_ai_explanation', 'Show AI Explanation')}
+          </Text>
+        </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity onPress={() => setShowExplanation(true)} style={{marginTop: 8, marginBottom: 4}}>
-           <Text style={{color: '#2563eb', fontWeight: '600'}}>Show AI Explanation</Text>
+        <TouchableOpacity onPress={() => setShowExplanation(true)} style={{ marginTop: 8, marginBottom: 4 }}>
+          <Text style={{ color: '#2563eb', fontWeight: '600' }}>{t('show_ai_explanation', 'Show AI Explanation')}</Text>
         </TouchableOpacity>
       )}
 
       {classification.specific_facilities?.length > 0 && (
         <View style={{ marginTop: 12 }}>
-          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>Specific assistance needed:</Text>
+          <Text style={[styles.explanationTitle, { color: isEmergency ? '#064e3b' : '#334155' }]}>{t('specific_assistance_needed', 'Specific assistance needed:')}</Text>
           <View style={styles.specificFacContainer}>
             {classification.specific_facilities.map(fac => {
               const label = fac.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -293,6 +297,8 @@ export default function MapScreen({ onBack }) {
     setIsEmergencyMode,
   } = useEmergency();
 
+  const { t } = useLanguage();
+
   const mapRef = useRef(null);
 
   const [userLocation, setUserLocation] = useState(null);
@@ -312,7 +318,7 @@ export default function MapScreen({ onBack }) {
   // Derived: best facility per AI-classified service type (for multi-service markers)
   const bestPerService = useMemo(() => {
     if (!classification?.specific_facilities?.length) return {};
-    
+
     // Get best facility for ALL requested service types
     const rawBest = getBestPerServiceType(facilities, classification.specific_facilities, classification);
 
@@ -322,7 +328,7 @@ export default function MapScreen({ onBack }) {
       // Find the one with the lowest distance (or ETA)
       let bestMedKey = medicalKeys[0];
       let bestMedVal = rawBest[bestMedKey].distance_km || 999;
-      
+
       for (let i = 1; i < medicalKeys.length; i++) {
         const key = medicalKeys[i];
         const val = rawBest[key].distance_km || 999;
@@ -346,14 +352,14 @@ export default function MapScreen({ onBack }) {
   // after facilities are fetched and keep only that one.
   useEffect(() => {
     if (!classification?.specific_facilities || facilities.length === 0) return;
-    
+
     const medKeys = ['trauma_center', 'hospital', 'clinic'];
     const requestedMed = classification.specific_facilities.filter(f => medKeys.includes(f));
-    
+
     if (requestedMed.length > 1) {
       let bestMedKey = requestedMed[0];
       let bestMedVal = Infinity;
-      
+
       for (const key of requestedMed) {
         const matches = facilities.filter(f => f.type === key);
         if (matches.length > 0) {
@@ -364,14 +370,14 @@ export default function MapScreen({ onBack }) {
           }
         }
       }
-      
+
       const newSpecific = classification.specific_facilities.filter(f => !medKeys.includes(f) || f === bestMedKey);
-      
+
       if (newSpecific.length !== classification.specific_facilities.length) {
-         setClassification({
-           ...classification,
-           specific_facilities: newSpecific
-         });
+        setClassification({
+          ...classification,
+          specific_facilities: newSpecific
+        });
       }
     }
   }, [classification, facilities, setClassification]);
@@ -406,7 +412,7 @@ export default function MapScreen({ onBack }) {
   const lastFetchedFilterRef = useRef(null);
   useEffect(() => {
     if (!userLocation || !activeFilter) return;
-    
+
     if (lastFetchedFilterRef.current !== activeFilter) {
       const existing = filterFacilitiesByType(facilities, activeFilter);
       if (existing.length === 0) {
@@ -421,7 +427,7 @@ export default function MapScreen({ onBack }) {
   // ── Auto-select best facility and fetch route when filter/facilities change ──
   useEffect(() => {
     if (!userLocation) return;
-    
+
     if (topFacilities.length > 0) {
       const best = topFacilities[0];
       if (!selectedFacility || selectedFacility.id !== best.id) {
@@ -449,10 +455,10 @@ export default function MapScreen({ onBack }) {
 
   useEffect(() => {
     if (!isEmergencyMode || fetchingFacilities || !classification?.specific_facilities) return;
-    
+
     if (topFacilities.length === 0 && activeFilter) {
       attemptedFiltersRef.current.add(activeFilter);
-      
+
       // Find the next service in specific_facilities that we haven't attempted yet
       for (const svcType of classification.specific_facilities) {
         const nextFilterId = facilityTypeToFilter(svcType);
@@ -469,7 +475,7 @@ export default function MapScreen({ onBack }) {
   const fetchMultiRoutes = useCallback(
     async (bestFacilitiesMap) => {
       if (!userLocation || !classification?.is_emergency) return;
-      
+
       const newMultiRoutes = {};
       const fetchPromises = [];
       const primaryType = getPrimaryFacilityType(classification?.specific_facilities || []);
@@ -510,13 +516,13 @@ export default function MapScreen({ onBack }) {
             dest_lon: facility.lon,
           }),
         })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data && data.polyline?.length) {
-            newMultiRoutes[svcType] = data;
-          }
-        })
-        .catch(e => console.error(`Multi-route error for ${svcType}:`, e));
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data && data.polyline?.length) {
+              newMultiRoutes[svcType] = data;
+            }
+          })
+          .catch(e => console.error(`Multi-route error for ${svcType}:`, e));
 
         fetchPromises.push(p);
       });
@@ -545,26 +551,26 @@ export default function MapScreen({ onBack }) {
         let matchingCount = 0;
 
         while (currentRadius <= MAX_RADIUS) {
-          const bodyObj = { 
-            lat, 
-            lon, 
+          const bodyObj = {
+            lat,
+            lon,
             radius_m: currentRadius,
             patient_gender: classification?.patient_gender,
             patient_demographic: classification?.patient_demographic,
             injury_type: classification?.injury_type
           };
-          
+
           const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bodyObj),
           });
-          
+
           if (resp.ok) {
             const data = await resp.json();
             allFresh = data.facilities || [];
             matchingCount = allFresh.filter((f) => cfg.facilityTypes.includes(f.type)).length;
-            
+
             if (matchingCount >= 2) {
               break;
             }
@@ -590,7 +596,7 @@ export default function MapScreen({ onBack }) {
   const fetchRoute = useCallback(
     async (facility) => {
       if (!userLocation || !facility) return;
-      
+
       if (isOffline) {
         if (facility.cached_route && facility.cached_route.polyline) {
           setActiveRoute({
@@ -656,18 +662,18 @@ export default function MapScreen({ onBack }) {
   useEffect(() => {
     if (mapRef.current && activeRoute?.polyline?.length && userLocation) {
       const allCoords = [{ latitude: userLocation.latitude, longitude: userLocation.longitude }];
-      
+
       allCoords.push(...activeRoute.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude })));
-      
+
       Object.values(multiRoutes).forEach(rt => {
-         if (rt.polyline) {
-            allCoords.push(...rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude })));
-         }
+        if (rt.polyline) {
+          allCoords.push(...rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude })));
+        }
       });
-      
-      mapRef.current.fitToCoordinates(allCoords, { 
-        edgePadding: { top: 80, right: 60, bottom: 360, left: 60 }, 
-        animated: true 
+
+      mapRef.current.fitToCoordinates(allCoords, {
+        edgePadding: { top: 80, right: 60, bottom: 360, left: 60 },
+        animated: true
       });
     }
   }, [activeRoute, multiRoutes, userLocation]);
@@ -687,13 +693,13 @@ export default function MapScreen({ onBack }) {
   // ── Open in Google Maps ───────────────────────────────────────
   const openInGoogleMaps = useCallback((facility) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${facility.lat},${facility.lon}&travelmode=driving`;
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(url).catch(() => { });
   }, []);
 
   // ── Call facility ─────────────────────────────────────────────
   const callFacility = useCallback((phone) => {
     if (!phone) return;
-    Linking.openURL(`tel:${phone}`).catch(() => {});
+    Linking.openURL(`tel:${phone}`).catch(() => { });
   }, []);
 
   // ── Derived display values ────────────────────────────────────
@@ -728,7 +734,7 @@ export default function MapScreen({ onBack }) {
         <View style={[styles.emergencyBanner, { borderColor: routeColor }]}>
           <Ionicons name="alert-circle" size={18} color={routeColor} />
           <Text style={[styles.emergencyBannerText, { color: routeColor }]}>
-            AI Emergency Mode — Auto-routing to nearest {activeCfg.name}
+            {t('ai_emergency_mode_prefix', 'AI Emergency Mode — Auto-routing to nearest')} {t(activeCfg.id, activeCfg.name)}
           </Text>
         </View>
       )}
@@ -740,7 +746,7 @@ export default function MapScreen({ onBack }) {
             <Ionicons name="chevron-back" size={24} color="#0f172a" />
           </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Emergency Map</Text>
+            <Text style={styles.headerTitle}>{t('emergency_map_title', 'Emergency Map')}</Text>
             {fetchingFacilities && (
               <ActivityIndicator size="small" color="#ef4444" style={{ marginLeft: 8 }} />
             )}
@@ -854,18 +860,18 @@ export default function MapScreen({ onBack }) {
 
           {/* Multi-Routes Polylines */}
           {Object.entries(multiRoutes).map(([svcType, rt]) => {
-             if (!rt.polyline || rt.polyline.length < 2) return null;
-             const color = TYPE_COLOR[svcType] || '#64748b';
-             const coords = rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
-             return (
-               <Polyline
-                 key={`route-${svcType}`}
-                 coordinates={coords}
-                 strokeColor={color}
-                 strokeWidth={4}
-                 lineDashPattern={undefined}
-               />
-             );
+            if (!rt.polyline || rt.polyline.length < 2) return null;
+            const color = TYPE_COLOR[svcType] || '#64748b';
+            const coords = rt.polyline.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+            return (
+              <Polyline
+                key={`route-${svcType}`}
+                coordinates={coords}
+                strokeColor={color}
+                strokeWidth={4}
+                lineDashPattern={undefined}
+              />
+            );
           })}
 
           {/* Primary Route Polyline */}
@@ -896,7 +902,7 @@ export default function MapScreen({ onBack }) {
         {routeLoading && (
           <View style={styles.routeLoadingOverlay}>
             <ActivityIndicator size="small" color="#ef4444" />
-            <Text style={styles.routeLoadingText}>Calculating fastest route...</Text>
+            <Text style={styles.routeLoadingText}>{t('calculating_route', 'Calculating fastest route...')}</Text>
           </View>
         )}
       </View>
@@ -911,7 +917,7 @@ export default function MapScreen({ onBack }) {
                 <View style={styles.routeCardLoading}>
                   <ActivityIndicator size="small" color={routeColor} />
                   <Text style={[styles.routeCardTitle, { color: routeColor, marginLeft: 8 }]}>
-                    Finding fastest route...
+                    {t('calculating_route', 'Finding fastest route...')}
                   </Text>
                 </View>
               ) : (
@@ -940,14 +946,14 @@ export default function MapScreen({ onBack }) {
                     {isEmergencyMode && (
                       <View style={[styles.routeCardBadge, { backgroundColor: '#fef2f2' }]}>
                         <Text style={[styles.routeCardBadgeText, { color: '#ef4444' }]}>
-                          Emergency Route Active
+                          {t('emergency_route_active', 'Emergency Route Active')}
                         </Text>
                       </View>
                     )}
                     {activeRoute?.source === 'fallback' && (
                       <View style={[styles.routeCardBadge, { backgroundColor: '#fef9c3' }]}>
                         <Text style={[styles.routeCardBadgeText, { color: '#854d0e' }]}>
-                          Est. only
+                          {t('est_only', 'Est. only')}
                         </Text>
                       </View>
                     )}
@@ -961,7 +967,7 @@ export default function MapScreen({ onBack }) {
           {routeError && (
             <View style={styles.routeErrorCard}>
               <Ionicons name="warning" size={16} color="#b45309" style={{ marginRight: 6 }} />
-              <Text style={styles.routeErrorText}>Unable to calculate route right now</Text>
+              <Text style={styles.routeErrorText}>{t('route_unavailable', 'Unable to calculate route right now')}</Text>
             </View>
           )}
 
@@ -974,15 +980,15 @@ export default function MapScreen({ onBack }) {
 
             <Text style={[styles.listTitle, classification && { marginTop: 16 }]}>
               {topFacilities.length > 0
-                ? `Top ${topFacilities.length} Nearby — ${activeCfg.name}`
-                : `No ${activeCfg.name} facilities found nearby`}
+                ? `${t('top', 'Top')} ${topFacilities.length} ${t('nearby', 'Nearby')} — ${t(activeCfg.id, activeCfg.name)}`
+                : `${t('no', 'No')} ${t(activeCfg.id, activeCfg.name)} ${t('facilities_found_nearby', 'facilities found nearby')}`}
             </Text>
 
             {topFacilities.length === 0 && !fetchingFacilities && (
               <View style={styles.emptyCard}>
                 <Ionicons name="search" size={32} color="#94a3b8" />
                 <Text style={styles.emptyText}>
-                  No {activeCfg.name} facilities found. Try expanding search radius.
+                  {t('no', 'No')} {t(activeCfg.id, activeCfg.name)} {t('facilities_found_try_expanding', 'facilities found. Try expanding search radius.')}
                 </Text>
               </View>
             )}
@@ -1015,7 +1021,7 @@ export default function MapScreen({ onBack }) {
                     </Text>
                     {fac.emergency && (
                       <View style={styles.emergencyBadge}>
-                        <Text style={styles.emergencyBadgeText}>24/7 Emergency</Text>
+                        <Text style={styles.emergencyBadgeText}>{t('emergency_24_7', '24/7 Emergency')}</Text>
                       </View>
                     )}
                   </View>
@@ -1058,8 +1064,8 @@ export default function MapScreen({ onBack }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: '#f8fafc',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
   },

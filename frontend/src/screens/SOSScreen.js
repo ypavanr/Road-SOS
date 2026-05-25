@@ -18,14 +18,14 @@ const STATUS = { IDLE: 'IDLE', COUNTDOWN: 'COUNTDOWN', SENDING: 'SENDING', SENT:
 
 // ── Channel status badge ────────────────────────────────────────────────────
 const ChannelBadge = ({ icon, label, state }) => {
-  const color = state === 'ok'      ? '#22C55E'
-              : state === 'error'   ? '#EF4444'
-              : state === 'sending' ? '#F59E0B'
-              : '#333';
-  const iconName = state === 'ok'      ? 'checkmark-circle'
-                 : state === 'error'   ? 'close-circle'
-                 : state === 'sending' ? 'time'
-                 : 'ellipse-outline';
+  const color = state === 'ok' ? '#22C55E'
+    : state === 'error' ? '#EF4444'
+      : state === 'sending' ? '#F59E0B'
+        : '#333';
+  const iconName = state === 'ok' ? 'checkmark-circle'
+    : state === 'error' ? 'close-circle'
+      : state === 'sending' ? 'time'
+        : 'ellipse-outline';
   return (
     <View style={[badge.wrap, { borderColor: color + '55' }]}>
       <Ionicons name={icon} size={14} color={color} style={{ marginRight: 5 }} />
@@ -46,15 +46,18 @@ const badge = StyleSheet.create({
 });
 
 // ── Main screen ─────────────────────────────────────────────────────────────
+import { useLanguage } from '../core/i18n/hooks/useLanguage';
+
 export default function SOSScreen() {
-  const [status,       setStatus]       = useState(STATUS.IDLE);
-  const [countdown,    setCountdown]    = useState(COUNTDOWN_SECONDS);
+  const { t } = useLanguage();
+  const [status, setStatus] = useState(STATUS.IDLE);
+  const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [locationData, setLocationData] = useState(null);
-  const [errorMsg,     setErrorMsg]     = useState('');
-  const [log,          setLog]          = useState([]);
-  const [channels,     setChannels]     = useState({ telegram: 'idle', sms: 'idle' });
-  const [userInfo,     setUserInfo]     = useState({ name: 'Loading...', phone: '...' });
-  const [photoUri,     setPhotoUri]     = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [log, setLog] = useState([]);
+  const [channels, setChannels] = useState({ telegram: 'idle', sms: 'idle' });
+  const [userInfo, setUserInfo] = useState({ name: 'Loading...', phone: '...' });
+  const [photoUri, setPhotoUri] = useState(null);
 
   useEffect(() => {
     fetch(`${API_GATEWAY_URL}/sos/config`)
@@ -63,22 +66,22 @@ export default function SOSScreen() {
       .catch(() => setUserInfo({ name: 'Unknown User', phone: 'Unknown Phone' }));
   }, []);
 
-  const pulseAnim  = useRef(new Animated.Value(1)).current;
-  const glowAnim   = useRef(new Animated.Value(0)).current;
-  const shakeAnim  = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
   const countdownRef = useRef(null);
-  const pulseLoop    = useRef(null);
+  const pulseLoop = useRef(null);
 
   const startPulse = useCallback(() => {
     pulseLoop.current = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(pulseAnim, { toValue: 1.18, duration: 600, useNativeDriver: true }),
-          Animated.timing(glowAnim,  { toValue: 1,    duration: 600, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.timing(pulseAnim, { toValue: 1,    duration: 600, useNativeDriver: true }),
-          Animated.timing(glowAnim,  { toValue: 0,    duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
         ]),
       ])
     );
@@ -93,10 +96,10 @@ export default function SOSScreen() {
 
   const triggerShake = () => {
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10,  duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 10,  duration: 60, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0,   duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
     ]).start();
   };
 
@@ -240,14 +243,14 @@ export default function SOSScreen() {
 
   // ── Derived UI ────────────────────────────────────────────────
   const isCountdown = status === STATUS.COUNTDOWN;
-  const isSending   = status === STATUS.SENDING;
-  const isSent      = status === STATUS.SENT;
-  const isError     = status === STATUS.ERROR;
+  const isSending = status === STATUS.SENDING;
+  const isSent = status === STATUS.SENT;
+  const isError = status === STATUS.ERROR;
 
   const buttonColors = isCountdown ? ['#FF6B00', '#FF3D00']
-    : isSent   ? ['#16A34A', '#15803D']
-    : isError  ? ['#B91C1C', '#7F1D1D']
-    : ['#DC2626', '#991B1B'];
+    : isSent ? ['#16A34A', '#15803D']
+      : isError ? ['#B91C1C', '#7F1D1D']
+        : ['#DC2626', '#991B1B'];
 
   return (
     <View style={s.root}>
@@ -270,8 +273,8 @@ export default function SOSScreen() {
         </View>
         {(isSent || isSending || isError) && (
           <View style={s.channelRow}>
-            <ChannelBadge icon="paper-plane-outline" label="TG"  state={channels.telegram} />
-            <ChannelBadge icon="chatbox-outline"     label="SMS" state={channels.sms} />
+            <ChannelBadge icon="paper-plane-outline" label="TG" state={channels.telegram} />
+            <ChannelBadge icon="chatbox-outline" label="SMS" state={channels.sms} />
           </View>
         )}
       </View>
@@ -360,10 +363,10 @@ export default function SOSScreen() {
       {/* Status text */}
       <Text style={s.statusText}>
         {isCountdown ? `Sending in ${countdown}s — tap button to cancel`
-          : isSending  ? 'Getting GPS & alerting all channels…'
-          : isSent     ? 'Authorities notified via Telegram & SMS'
-          : isError    ? errorMsg
-          : 'Press the SOS button to send an emergency alert'}
+          : isSending ? 'Getting GPS & alerting all channels…'
+            : isSent ? 'Authorities notified via Telegram & SMS'
+              : isError ? errorMsg
+                : 'Press the SOS button to send an emergency alert'}
       </Text>
 
       {/* GPS chip */}
@@ -424,7 +427,7 @@ const s = StyleSheet.create({
     marginBottom: 34, width: width - 44,
   },
   userName: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-  userSub:  { color: '#666', fontSize: 12, marginTop: 2 },
+  userSub: { color: '#666', fontSize: 12, marginTop: 2 },
   channelRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 },
 
   photoSection: {
@@ -491,13 +494,13 @@ const s = StyleSheet.create({
     shadowColor: '#EF4444', shadowRadius: 32, shadowOpacity: 0.75,
     elevation: 24,
   },
-  sosLabel:    { color: '#FFF', fontSize: 54, fontWeight: '900', letterSpacing: 6 },
-  sosSub:      { color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 3, marginTop: 4 },
-  countNum:    { color: '#FFF', fontSize: 74, fontWeight: '900' },
-  countLabel:  { color: 'rgba(255,255,255,0.75)', fontSize: 10, letterSpacing: 2 },
-  sendingLabel:{ color: '#FFF', fontSize: 13, letterSpacing: 3, marginTop: 10, fontWeight: '700' },
-  sentLabel:   { color: '#FFF', fontSize: 20, fontWeight: '800', marginTop: 8, letterSpacing: 4 },
-  errorLabel:  { color: '#FFF', fontSize: 18, fontWeight: '800', marginTop: 8, letterSpacing: 4 },
+  sosLabel: { color: '#FFF', fontSize: 54, fontWeight: '900', letterSpacing: 6 },
+  sosSub: { color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 3, marginTop: 4 },
+  countNum: { color: '#FFF', fontSize: 74, fontWeight: '900' },
+  countLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, letterSpacing: 2 },
+  sendingLabel: { color: '#FFF', fontSize: 13, letterSpacing: 3, marginTop: 10, fontWeight: '700' },
+  sentLabel: { color: '#FFF', fontSize: 20, fontWeight: '800', marginTop: 8, letterSpacing: 4 },
+  errorLabel: { color: '#FFF', fontSize: 18, fontWeight: '800', marginTop: 8, letterSpacing: 4 },
 
   statusText: {
     color: '#888', fontSize: 13, textAlign: 'center',
