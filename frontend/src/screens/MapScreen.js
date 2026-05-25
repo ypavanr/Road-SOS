@@ -28,6 +28,7 @@ import {
   facilityTypeToFilter,
   getPrimaryFacilityType,
 } from '../context/EmergencyContext';
+import { getLocationData } from '../services/locationService';
 import { useLanguage } from '../core/i18n/hooks/useLanguage';
 
 const { width, height } = Dimensions.get('window');
@@ -385,10 +386,23 @@ export default function MapScreen({ onBack }) {
   // ── Location ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation(loc.coords);
+      try {
+        // Verify if a mock location override is active
+        const locServiceData = await getLocationData();
+        if (locServiceData && locServiceData.isMock) {
+          setUserLocation({ latitude: locServiceData.latitude, longitude: locServiceData.longitude, accuracy: locServiceData.accuracy });
+          return;
+        }
+
+        // Otherwise, use MapScreen's original independent tracker
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          setUserLocation(loc.coords);
+        }
+      } catch (e) {
+        console.error("MapScreen location error:", e);
+      }
     })();
   }, []);
 

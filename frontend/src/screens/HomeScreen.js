@@ -26,6 +26,7 @@ import {
   rankFacility,
 } from '../context/EmergencyContext';
 import { verifyOnlineStatusViaWebSocket } from '../services/networkService';
+import { getLocationData, cycleMockLocation } from '../services/locationService';
 
 const { width } = Dimensions.get('window');
 
@@ -133,6 +134,35 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   // Low-confidence confirmation state
   const [pendingClassification, setPendingClassification] = useState(null);
 
+  // Hidden developer tap state
+  const [secretTapCount, setSecretTapCount] = useState(0);
+  const secretTapTimer = useRef(null);
+
+  const handleSecretTap = async () => {
+    setSecretTapCount(prev => prev + 1);
+    
+    if (secretTapTimer.current) clearTimeout(secretTapTimer.current);
+    secretTapTimer.current = setTimeout(() => {
+      setSecretTapCount(0);
+    }, 1500);
+
+    if (secretTapCount >= 4) {
+      const newMock = cycleMockLocation();
+      Alert.alert('Developer Mode', `Location switched to: ${newMock.name}\n(Will apply on next refresh)`);
+      setSecretTapCount(0);
+      
+      // Force refresh location
+      setLocationLoading(true);
+      try {
+        const loc = await getLocationData();
+        setLocation({ coords: loc });
+      } catch (e) {
+        console.error("Failed to load mock location", e);
+      }
+      setLocationLoading(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -140,10 +170,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         setLocationLoading(false);
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc);
+      const loc = await getLocationData();
+      setLocation({ coords: loc });
       setLocationLoading(false);
-      if (loc?.coords) {
+      if (loc) {
         preloadPromiseRef.current = preloadFacilities(loc.coords.latitude, loc.coords.longitude);
         updateCacheIfNeeded(loc.coords.latitude, loc.coords.longitude);
       }
@@ -637,7 +667,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header with Language Selector */}
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>{t('emergency_dashboard', 'Emergency Dashboard')}</Text>
+          <TouchableOpacity activeOpacity={1} onPress={handleSecretTap}>
+            <Text style={styles.headerTitle}>{t('emergency_dashboard', 'Emergency Dashboard')}</Text>
+          </TouchableOpacity>
           <LanguageSelector />
         </View>
 
