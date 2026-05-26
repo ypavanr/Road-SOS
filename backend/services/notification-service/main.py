@@ -46,11 +46,15 @@ class ConnectionManager:
             
         logger.info(f"WebSocket disconnected from grid {geohash}.")
 
-    async def broadcast_to_geohashes(self, geohashes: List[str], message: dict):
+    async def broadcast_to_geohashes(self, geohashes: List[str], message: dict, sender_phone: str = None):
         notified = set()
+        sender_websocket = active_phones.get(sender_phone) if sender_phone else None
+        
         for gh in geohashes:
             if gh in active_websockets:
                 for connection in active_websockets[gh]:
+                    if connection == sender_websocket:
+                        continue # Skip sending back to the person who triggered it!
                     if connection not in notified:
                         try:
                             await connection.send_json(message)
@@ -157,7 +161,7 @@ async def trigger_sos(req: TriggerSOSRequest):
             "title": req.title,
             "body": req.message,
             "url": req.url
-        }))
+        }, req.sender_phone))
         
         # ACTUALLY send direct WebSocket alerts to registered Emergency Contacts!
         if req.target_phones:

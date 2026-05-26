@@ -415,23 +415,28 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         // This hits the backend API, which then iterates through all active
         // WebSocket connections in those 9 grids and pushes the alert to them instantly!
         
-        // Extract the victim's actual emergency contacts (only if they are a victim)
-        let directContactPhones = [];
-        let contactMessage = null;
+        if (!isPoliceInvolved) {
+          // Extract the victim's actual emergency contacts (only if they are a victim)
+          let directContactPhones = [];
+          let contactMessage = null;
 
-        if (data.user_role === 'victim' && userData?.emergencyContacts) {
-          directContactPhones = userData.emergencyContacts.map(c => c.phone);
-          const userName = userData.name || "Your contact";
-          contactMessage = `🚨 ${userName} has triggered an SOS and requires immediate assistance! Please view their live location.`;
+          if (data.user_role === 'victim' && userData?.emergencyContacts) {
+            directContactPhones = userData.emergencyContacts.map(c => c.phone);
+            const userName = userData.name || "Your contact";
+            contactMessage = `🚨 ${userName} has triggered an SOS and requires immediate assistance! Please view their live location.`;
+          }
+
+          const senderPhone = userData?.phone || null;
+
+          broadcastSOSToGeohashes(
+            lat, 
+            lon, 
+            `URGENT: Road-SOS Alert! A severe incident was reported less than 5km from your location. Please yield to emergency vehicles.`,
+            directContactPhones,
+            contactMessage,
+            senderPhone
+          );
         }
-
-        broadcastSOSToGeohashes(
-          lat, 
-          lon, 
-          `URGENT: Road-SOS Alert! A severe incident was reported less than 5km from your location. Please yield to emergency vehicles.`,
-          directContactPhones,
-          contactMessage
-        );
       }
 
       onNavigateToMap();

@@ -10,5 +10,6 @@ class TriggerSOSRequest(BaseModel):
     target_phones: List[str] = []
     message: str
     contact_message: str = None
+    sender_phone: str = None
     title: str = "⚠️ URGENT: Road-SOS Alert!"
     url: str = None

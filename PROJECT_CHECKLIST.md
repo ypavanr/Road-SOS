@@ -35,11 +35,13 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Context-Aware Nearby Dispatch**: Prevent sending alerts to emergency contacts (and bystanders) if AI classification detects police involvement to protect their safety.
 - [x] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
 - [x] **Cancel Button**: A cancel button to stop voice recording, SMS dispatch, or any ongoing emergency process.
-- [x] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emergency contacts(but if the time is in the night then to emergency contacts).
+- [x] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers. The user's emergency contacts will always receive an alert regardless of the time of day.
 - [x] **Automatic Language Bug**: Fix the issue where the display language does not automatically change when the user's physical location/country changes.
 - [x] **Complex Injury Combinations & Classification Bugs**: Test and refine AI routing for overlapping edge cases (e.g., child + pregnant, pregnant + eye injury). Fix the second SMS logic for normal map/hospital routing. Fix the facility finding logic and re-evaluate classification errors (bystander vs victim).
 - [x] **Geohash Proximity Notifications**: Implemented custom Geohash grid-based proximity broadcasting using pure WebSockets (bypassing Expo Go push limits) to dynamically alert active app users physically near the accident zone with native popups and Map links.
 - [x] **Emergency Contact Direct WebSocket (WiFi Bypass)**: Replaced "WiFi Captive Portal" with direct, real-time WebSocket routing. Emergency Contacts now instantly receive a native in-app popup (with map links) over the internet, acting as a real-time addition to the SMS dispatch.
+- [x] **Text Input UI Polish**: Changed "CLASSIFY TEXT" button wording to "SUBMIT" via translation files to be more user-friendly during emergencies.
+- [x] **WebSocket Routing & Safety Constraints**: Implemented safety checks to completely block WebSocket broadcasts (both Geohash and Emergency Contacts) if Police are involved to prevent drawing people to dangerous situations. Ensured the system never broadcasts a proximity alert back to the victim who triggered it.
 ---
 
 ## 🚧 Remaining Tasks
@@ -47,8 +49,6 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 ### 🗺️ Navigation & UI
 - [ Last ] **User Onboarding & Test Run**: Provide helpful videos for new users explaining how the application works for easy navigation. Implement an interactive "test run" mode to let them practice safely.
 (After everything is done)
-  - *Assignee:* [ Unassigned ]
-- [ ] **Text Input UI Polish**: Change "CLASSIFY TEXT" button wording to something better. Align the text input cancel button to match the audio recording cancel button (placed on the left side).
   - *Assignee:* [ Unassigned ]
 - [ Kept for easier understanding ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
   - *Assignee:* [ Unassigned ]
@@ -67,7 +67,7 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
   - *Assignee:* [ Vibha ]
 
 
-Change emergency contacts numbers
+-[ ] **Change emergency contacts numbers**
 
 ### 📡 Languages
 - [No Time] **Additional Languages Integration**: More research for integrating more languages if time permits for the final demonstration.

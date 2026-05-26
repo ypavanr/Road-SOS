@@ -8,7 +8,7 @@
   "start_voice_sos": "VOICE",
   "start_text_sos": "TEXT",
   "type_emergency": "Type your emergency here...",
-  "submit": "CLASSIFY TEXT",
+  "submit": "SUBMIT",
   "translation_of_voice": "Translation of voice",
   "emergency_services": "Emergency Services",
   "emergency_map": "Go to Map View",

@@ -161,12 +161,13 @@ export const getTargetGeohashes = (lat, lon) => {
   return geohash.neighbors(center).concat(center);
 };
 
-export const broadcastSOSToGeohashes = async (lat, lon, message, targetPhones = [], contactMessage = null) => {
+export const broadcastSOSToGeohashes = async (lat, lon, message, targetPhones = [], contactMessage = null, senderPhone = null) => {
   const grids = getTargetGeohashes(lat, lon);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
   
   // Sanitize target phones to ensure they match the connected websocket keys
   const safeTargetPhones = targetPhones.map(p => p.replace(/[^0-9+]/g, ''));
+  const safeSenderPhone = senderPhone ? senderPhone.replace(/[^0-9+]/g, '') : null;
   
   try {
     await axios.post(`${NOTIFICATION_SERVICE_URL}/trigger-sos`, {
@@ -174,6 +175,7 @@ export const broadcastSOSToGeohashes = async (lat, lon, message, targetPhones = 
       target_phones: safeTargetPhones,
       message,
       contact_message: contactMessage,
+      sender_phone: safeSenderPhone,
       url: mapUrl
     });
     console.log(`SOS Broadcasted to ${grids.length} nearby grids!`);

@@ -56,14 +56,10 @@ export const sendSOSViaSMS = async (
 
   let validNumbers = [];
 
-  const currentHour = new Date().getHours();
-  const isNightTime = currentHour >= 20 || currentHour < 6; // 8 PM to 6 AM
-  const blockForNonMedical = isNonMedical && !isNightTime;
-
   // Role-Based SMS Routing: If Bystander -> do NOT send to emergency contacts
   // Context-Aware Dispatch: If Police Involved -> do NOT send to emergency contacts (protect them from dangerous situations)
-  // Non-Medical: If strictly roadside assistance (puncture, towing) -> do NOT send to emergency contacts UNLESS it is night time
-  if (userRole !== 'bystander' && !isPoliceInvolved && !blockForNonMedical) {
+  // Non-Medical: Always send to emergency contacts regardless of day/night
+  if (userRole !== 'bystander' && !isPoliceInvolved) {
     if (activeUserData && activeUserData.emergencyContacts) {
       validNumbers = activeUserData.emergencyContacts
         .map(c => c.phone)
