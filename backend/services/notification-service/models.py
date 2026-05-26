@@ -7,6 +7,8 @@ class UpdateLocationRequest(BaseModel):
 
 class TriggerSOSRequest(BaseModel):
     geohashes: List[str]
+    target_phones: List[str] = []
     message: str
+    contact_message: str = None
     title: str = "⚠️ URGENT: Road-SOS Alert!"
     url: str = None

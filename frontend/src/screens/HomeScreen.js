@@ -411,13 +411,26 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           isNonMedical
         ).catch((err) => console.error('AI automatic SMS failed:', err));
 
-        // ── Broadcast to Nearby App Users (Geohash Pub/Sub) ──
+        // ── Broadcast to Nearby App Users (Geohash Pub/Sub) & Emergency Contacts ──
         // This hits the backend API, which then iterates through all active
         // WebSocket connections in those 9 grids and pushes the alert to them instantly!
+        
+        // Extract the victim's actual emergency contacts (only if they are a victim)
+        let directContactPhones = [];
+        let contactMessage = null;
+
+        if (data.user_role === 'victim' && userData?.emergencyContacts) {
+          directContactPhones = userData.emergencyContacts.map(c => c.phone);
+          const userName = userData.name || "Your contact";
+          contactMessage = `🚨 ${userName} has triggered an SOS and requires immediate assistance! Please view their live location.`;
+        }
+
         broadcastSOSToGeohashes(
           lat, 
           lon, 
-          `URGENT: Road-SOS Alert! A severe incident was reported less than 5km from your location. Please yield to emergency vehicles.`
+          `URGENT: Road-SOS Alert! A severe incident was reported less than 5km from your location. Please yield to emergency vehicles.`,
+          directContactPhones,
+          contactMessage
         );
       }
 

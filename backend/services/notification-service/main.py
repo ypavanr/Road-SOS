@@ -17,28 +17,55 @@ logger = logging.getLogger(__name__)
 
 # Dictionary to hold active websocket connections mapped by geohash
 active_websockets: Dict[str, List[WebSocket]] = {}
+# Dictionary to hold active websocket connections mapped by phone number
+active_phones: Dict[str, WebSocket] = {}
 
 class ConnectionManager:
-    async def connect(self, websocket: WebSocket, geohash: str):
+    async def connect(self, websocket: WebSocket, geohash: str, phone: str = None):
         await websocket.accept()
+        
+        # Track by Geohash
         if geohash not in active_websockets:
             active_websockets[geohash] = []
         active_websockets[geohash].append(websocket)
-        logger.info(f"WebSocket connected to grid {geohash}. Total in grid: {len(active_websockets[geohash])}")
+        
+        # Track by Phone Number (if provided)
+        if phone and phone != "guest":
+            active_phones[phone] = websocket
+            
+        logger.info(f"WebSocket connected (Grid: {geohash}, Phone: {phone}). Total in grid: {len(active_websockets[geohash])}")
 
-    def disconnect(self, websocket: WebSocket, geohash: str):
+    def disconnect(self, websocket: WebSocket, geohash: str, phone: str = None):
+        # Remove from Geohash tracker
         if geohash in active_websockets and websocket in active_websockets[geohash]:
             active_websockets[geohash].remove(websocket)
-            logger.info(f"WebSocket disconnected from grid {geohash}.")
+            
+        # Remove from Phone tracker
+        if phone and phone in active_phones and active_phones[phone] == websocket:
+            del active_phones[phone]
+            
+        logger.info(f"WebSocket disconnected from grid {geohash}.")
 
     async def broadcast_to_geohashes(self, geohashes: List[str], message: dict):
+        notified = set()
         for gh in geohashes:
             if gh in active_websockets:
                 for connection in active_websockets[gh]:
-                    try:
-                        await connection.send_json(message)
-                    except Exception as e:
-                        logger.error(f"Failed to send to websocket in {gh}: {e}")
+                    if connection not in notified:
+                        try:
+                            await connection.send_json(message)
+                            notified.add(connection)
+                        except Exception as e:
+                            logger.error(f"Failed to send to websocket in {gh}: {e}")
+                            
+    async def broadcast_to_phones(self, phones: List[str], message: dict):
+        for phone in phones:
+            if phone in active_phones:
+                try:
+                    await active_phones[phone].send_json(message)
+                    logger.info(f"✅ Directly notified Emergency Contact: {phone}")
+                except Exception as e:
+                    logger.error(f"Failed to send to phone {phone}: {e}")
 
 manager = ConnectionManager()
 
@@ -62,15 +89,15 @@ app.add_middleware(
 def health():
     return {"status": "ok", "service": "notification-service"}
 
-@app.websocket("/ws/{geohash}")
-async def websocket_endpoint(websocket: WebSocket, geohash: str):
-    await manager.connect(websocket, geohash)
+@app.websocket("/ws/{geohash}/{phone}")
+async def websocket_endpoint(websocket: WebSocket, geohash: str, phone: str):
+    await manager.connect(websocket, geohash, phone)
     try:
         while True:
             # Keep connection alive, listen for any messages if needed
             data = await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket, geohash)
+        manager.disconnect(websocket, geohash, phone)
 
 @app.post("/update-location")
 def update_location(req: UpdateLocationRequest):
@@ -125,12 +152,20 @@ async def trigger_sos(req: TriggerSOSRequest):
         # Always return success for the demo so the frontend doesn't crash
         logger.info(f"✅ Successfully simulated broadcasting to {len(tokens)} devices!")
         
-        # ACTUALLY send over WebSocket to anyone currently connected in these grids!
+        # ACTUALLY send over WebSocket to anyone currently connected in these grids (Bystanders)!
         asyncio.create_task(manager.broadcast_to_geohashes(req.geohashes, {
             "title": req.title,
             "body": req.message,
             "url": req.url
         }))
+        
+        # ACTUALLY send direct WebSocket alerts to registered Emergency Contacts!
+        if req.target_phones:
+            asyncio.create_task(manager.broadcast_to_phones(req.target_phones, {
+                "title": "🚨 EMERGENCY CONTACT ALERT",
+                "body": req.contact_message if req.contact_message else req.message,
+                "url": req.url
+            }))
         
         return {"status": "success", "users_notified": len(tokens), "demo_mode": True}
         

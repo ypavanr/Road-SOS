@@ -39,6 +39,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Automatic Language Bug**: Fix the issue where the display language does not automatically change when the user's physical location/country changes.
 - [x] **Complex Injury Combinations & Classification Bugs**: Test and refine AI routing for overlapping edge cases (e.g., child + pregnant, pregnant + eye injury). Fix the second SMS logic for normal map/hospital routing. Fix the facility finding logic and re-evaluate classification errors (bystander vs victim).
 - [x] **Geohash Proximity Notifications**: Implemented custom Geohash grid-based proximity broadcasting using pure WebSockets (bypassing Expo Go push limits) to dynamically alert active app users physically near the accident zone with native popups and Map links.
+- [x] **Emergency Contact Direct WebSocket (WiFi Bypass)**: Replaced "WiFi Captive Portal" with direct, real-time WebSocket routing. Emergency Contacts now instantly receive a native in-app popup (with map links) over the internet, acting as a real-time addition to the SMS dispatch.
 ---
 
 ## 🚧 Remaining Tasks
@@ -64,8 +65,7 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
 **Condition**: Spend an hour researching if it works *without pairing* (research only).
 (Kept on hold to be done in the end)
   - *Assignee:* [ Vibha ]
-- [ ] **WiFi Captive Portal SOS (If time permits)**: Investigate broadcasting an open WiFi hotspot during an emergency so emergrncy contacts with the app get an automatic SOS pop-up on their phones.
-  - *Assignee:* [ Unassigned ]
+
 
 Change emergency contacts numbers
 

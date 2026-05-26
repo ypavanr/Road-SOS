@@ -3,12 +3,50 @@ import * as Location from 'expo-location';
 import geohash from 'ngeohash';
 import axios from 'axios';
 import { Alert, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_GATEWAY_URL } from '../../config';
 
 const NOTIFICATION_SERVICE_URL = (API_GATEWAY_URL || 'http://127.0.0.1:8000').replace('8000', '8008');
 const WEBSOCKET_URL = NOTIFICATION_SERVICE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 let activeWebSocket = null;
+const alertQueue = [];
+let isAlertVisible = false;
+
+const processAlertQueue = () => {
+  if (isAlertVisible || alertQueue.length === 0) return;
+  
+  isAlertVisible = true;
+  const data = alertQueue.shift();
+
+  const handleDismiss = () => {
+    isAlertVisible = false;
+    // Add a slight delay before showing the next popup so it feels natural
+    setTimeout(processAlertQueue, 500);
+  };
+
+  const buttons = [{ 
+    text: "Close", 
+    style: "cancel",
+    onPress: handleDismiss
+  }];
+  
+  if (data.url) {
+    buttons.push({
+      text: "View on Map",
+      onPress: () => {
+        handleDismiss();
+        Linking.openURL(data.url);
+      }
+    });
+  }
+
+  Alert.alert(
+    "🚨 " + (data.title || "Proximity Alert"),
+    data.body,
+    buttons
+  );
+};
 
 const GEOHASH_UPDATE_TASK = 'GEOHASH_UPDATE_TASK';
 
@@ -56,12 +94,21 @@ export const updateGeohashSubscription = async (latitude, longitude) => {
   }
 };
 
-export const connectGeohashWebSocket = (grid) => {
+export const connectGeohashWebSocket = async (grid) => {
   if (activeWebSocket) {
     activeWebSocket.close();
   }
   
-  const ws = new WebSocket(`${WEBSOCKET_URL}/ws/${grid}`);
+  let phone = "guest";
+  try {
+    const userData = await AsyncStorage.getItem('userData');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      phone = parsed.phone ? parsed.phone.replace(/[^0-9+]/g, '') : "guest";
+    }
+  } catch (e) {}
+  
+  const ws = new WebSocket(`${WEBSOCKET_URL}/ws/${grid}/${phone}`);
   
   ws.onopen = () => {
     console.log(`[WebSocket] Connected to grid: ${grid}`);
@@ -70,20 +117,8 @@ export const connectGeohashWebSocket = (grid) => {
   ws.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
-      
-      const buttons = [{ text: "Acknowledge", style: "cancel" }];
-      if (data.url) {
-        buttons.push({
-          text: "View on Map",
-          onPress: () => Linking.openURL(data.url)
-        });
-      }
-
-      Alert.alert(
-        "🚨 " + (data.title || "Proximity Alert"),
-        data.body,
-        buttons
-      );
+      alertQueue.push(data);
+      processAlertQueue();
     } catch (err) {
       console.error("Failed to parse websocket message", err);
     }
@@ -126,14 +161,19 @@ export const getTargetGeohashes = (lat, lon) => {
   return geohash.neighbors(center).concat(center);
 };
 
-export const broadcastSOSToGeohashes = async (lat, lon, message) => {
+export const broadcastSOSToGeohashes = async (lat, lon, message, targetPhones = [], contactMessage = null) => {
   const grids = getTargetGeohashes(lat, lon);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+  
+  // Sanitize target phones to ensure they match the connected websocket keys
+  const safeTargetPhones = targetPhones.map(p => p.replace(/[^0-9+]/g, ''));
   
   try {
     await axios.post(`${NOTIFICATION_SERVICE_URL}/trigger-sos`, {
       geohashes: grids,
+      target_phones: safeTargetPhones,
       message,
+      contact_message: contactMessage,
       url: mapUrl
     });
     console.log(`SOS Broadcasted to ${grids.length} nearby grids!`);
