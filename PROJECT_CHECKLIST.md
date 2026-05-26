@@ -35,6 +35,9 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Context-Aware Nearby Dispatch**: Prevent sending alerts to emergency contacts (and bystanders) if AI classification detects police involvement to protect their safety.
 - [x] **Localization (Language & Contacts)**: Ensure display language matches the user's country, and emergency contacts change accordingly based on location (e.g., 112, 100).
 - [x] **Cancel Button**: A cancel button to stop voice recording, SMS dispatch, or any ongoing emergency process.
+- [x] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emergency contacts(but if the time is in the night then to emergency contacts).
+- [x] **Automatic Language Bug**: Fix the issue where the display language does not automatically change when the user's physical location/country changes.
+- [x] **Complex Injury Combinations & Classification Bugs**: Test and refine AI routing for overlapping edge cases (e.g., child + pregnant, pregnant + eye injury). Fix the second SMS logic for normal map/hospital routing. Fix the facility finding logic and re-evaluate classification errors (bystander vs victim).
 ---
 
 ## 🚧 Remaining Tasks
@@ -45,29 +48,18 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
   - *Assignee:* [ Unassigned ]
 - [ ] **Text Input UI Polish**: Change "CLASSIFY TEXT" button wording to something better. Align the text input cancel button to match the audio recording cancel button (placed on the left side).
   - *Assignee:* [ Unassigned ]
-- [ ] **Automatic Language Bug**: Fix the issue where the display language does not automatically change when the user's physical location/country changes.
-  - *Assignee:* [ Unassigned ]
 - [ Kept for easier understanding ] **UI Polish (Final Demo)**: Hide or gracefully remove raw error popups/messages for the final demo presentation.
   - *Assignee:* [ Unassigned ]
 
 
 ### ⚙️ Dispatch Logic & Overrides
-- [On Hold] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
+- [Scrapped] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
 - [ ] **Geohash Proximity Notifications**: Research and implement Geohash/Grid-based topic subscriptions (e.g., via Firebase Cloud Messaging) to dynamically push notifications to active app users located physically near the accident zone.
   - *Assignee:* [ Unassigned ]
-- [ ] **Complex Injury Combinations & Classification Bugs**: Test and refine AI routing for overlapping edge cases (e.g., child + pregnant, pregnant + eye injury). Currently, only 'eye' and 'snake' are working properly. 
-Fix the second SMS logic for normal map/hospital routing(showing eye). 
-Fix the facility finding logic and re-evaluate classification errors(child+pregnancy).
-  - *Assignee:* [ Unassigned ]
-- [ ] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emergency contacts(but if the time is in the night then to emergency contacts).
-(tst this)
-  - *Assignee:* [ Vibha ]
-
-
 ### 📡 Advanced Offline / Peer-to-Peer SOS
-- [On Hold] **Bluetooth Relay (Mesh)**: Transmit SOS via Bluetooth to nearby devices when there is no cell network.
+- [ Scrapped ] **Bluetooth Relay (Mesh)**: Transmit SOS via Bluetooth to nearby devices when there is no cell network.
 Implement a timer for the Bluetooth relay system, so if the receiving phone later gains network access, it triggers the location fallback SMS automatically.
 **Condition**: Spend an hour researching if it works *without pairing* (research only).
 (Kept on hold to be done in the end)
@@ -75,9 +67,10 @@ Implement a timer for the Bluetooth relay system, so if the receiving phone late
 - [ ] **WiFi Captive Portal SOS (If time permits)**: Investigate broadcasting an open WiFi hotspot during an emergency so emergrncy contacts with the app get an automatic SOS pop-up on their phones.
   - *Assignee:* [ Unassigned ]
 
+Change emergency contacts numbers
 
 ### 📡 Languages
-- [ ] **Additional Languages Integration**: More research for integrating more languages if time permits for the final demonstration.
+- [No Time] **Additional Languages Integration**: More research for integrating more languages if time permits for the final demonstration.
   - *Assignee:* [ Unassigned ]
 ---
 

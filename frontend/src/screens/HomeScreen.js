@@ -110,7 +110,7 @@ import { useLanguage } from '../core/i18n/hooks/useLanguage';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 
 export default function HomeScreen({ onNavigateToMap, userData }) {
-  const { t } = useLanguage();
+  const { t, changeLanguage } = useLanguage();
   const {
     facilities,
     setFacilities,
@@ -137,6 +137,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         { id: 'pol', ...rConfig.hotlines.police }
       ];
       setRegionalHotlines(hotlinesArray);
+      changeLanguage(rConfig.defaultLang).catch(console.error);
     } else {
       const rConfig = getRegionalConfig('DEFAULT');
       const hotlinesArray = [
@@ -393,6 +394,9 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         if (phone) targetPhones.push(phone);
       });
 
+      const ROADSIDE_FACILITIES = ['towing', 'tyre_shop', 'fuel_station', 'car_repair', 'showroom', 'roadside_assistance'];
+      const isNonMedical = reqFacilities.length > 0 && reqFacilities.every(fac => ROADSIDE_FACILITIES.includes(fac));
+
       if (targetPhones.length > 0 || data.user_role === 'victim') {
         sendSOSViaSMS(
           { latitude: lat, longitude: lon, accuracy: 0, timestamp: Date.now() },
@@ -402,7 +406,8 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           data.explanation || 'Emergency classified by AI',
           null,
           null,
-          isPoliceInvolved
+          isPoliceInvolved,
+          isNonMedical
         ).catch((err) => console.error('AI automatic SMS failed:', err));
       }
 

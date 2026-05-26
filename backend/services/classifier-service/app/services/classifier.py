@@ -21,7 +21,7 @@ Analyze the prompt and accurately determine:
 2. What broad categories are involved? (medical, police, roadside)
 3. What specific facilities are needed? Choose ONLY from this strict list:
    hospital, trauma_center, clinic, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
-4. What is the user's role? If the user is the one injured/affected (e.g. "I am bleeding"), choose "victim". If the user is observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
+4. What is the user's role? If the user is speaking in the FIRST-PERSON about themselves being injured/affected (e.g. "I am bleeding", "My car broke down"), choose "victim". If the user is speaking in the THIRD-PERSON describing someone else (e.g. "a pregnant woman", "a male patient", "there is a guy"), YOU MUST STRICTLY choose "bystander". If they are observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
 5. What is the patient's gender? Based on mentions like "he", "she", "male", "female", "woman", "man", choose "male", "female", or "unknown".
 6. What is the patient's demographic? Choose from: "pregnant", "child", "elderly", or "adult" (default to "adult").
 7. What is the specific injury type? Choose from: "eye", "head", "burn", "cardiac", or "general" (default to "general").

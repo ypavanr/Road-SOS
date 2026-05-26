@@ -39,6 +39,36 @@ export const REGIONAL_CONFIG = {
       police: { number: '000', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
     }
   },
+  FR: {
+    countryCode: 'FR',
+    defaultLang: 'fr',
+    hotlines: {
+      sos: { number: '112', subtitle: 'National Emer...', icon: 'warning', color: '#ef4444', type: 'sms' },
+      ambulance: { number: '15', subtitle: 'Ambulance', icon: 'medkit', color: '#f97316', type: 'call' },
+      highway: { number: '112', subtitle: 'Highway Help', icon: 'git-network', color: '#3b82f6', type: 'call' },
+      police: { number: '17', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
+    }
+  },
+  JP: {
+    countryCode: 'JP',
+    defaultLang: 'ja',
+    hotlines: {
+      sos: { number: '110', subtitle: 'National Emer...', icon: 'warning', color: '#ef4444', type: 'sms' },
+      ambulance: { number: '119', subtitle: 'Ambulance', icon: 'medkit', color: '#f97316', type: 'call' },
+      highway: { number: '#9910', subtitle: 'Highway Help', icon: 'git-network', color: '#3b82f6', type: 'call' },
+      police: { number: '110', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
+    }
+  },
+  CN: {
+    countryCode: 'CN',
+    defaultLang: 'zh',
+    hotlines: {
+      sos: { number: '110', subtitle: 'National Emer...', icon: 'warning', color: '#ef4444', type: 'sms' },
+      ambulance: { number: '120', subtitle: 'Ambulance', icon: 'medkit', color: '#f97316', type: 'call' },
+      highway: { number: '122', subtitle: 'Highway Help', icon: 'git-network', color: '#3b82f6', type: 'call' },
+      police: { number: '110', subtitle: 'Police', icon: 'shield-checkmark', color: '#14b8a6', type: 'call' }
+    }
+  },
   // Default fallback
   DEFAULT: {
     countryCode: 'DEFAULT',

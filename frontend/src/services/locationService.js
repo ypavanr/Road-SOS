@@ -13,6 +13,9 @@ export const setManualMockLocation = (lat, lon) => {
   } else {
     dynamicMock = { name: "Manual Pin", lat, lon };
   }
+  // Immediately invalidate the cache so the new location takes effect
+  cachedLocationData = null;
+  lastLocationTime = 0;
 };
 
 export const getManualMockLocation = () => dynamicMock;
@@ -63,11 +66,17 @@ export const getLocationData = async () => {
   // Get current position with high accuracy
   let location;
   try {
-    location = await Location.getCurrentPositionAsync({
+    const locationPromise = Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.BestForNavigation,
       maximumAge: 5000,
-      timeout: 15000,
     });
+    
+    // Strict JS-level timeout to prevent Native bridge freezing on Emulators
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('GPS request timed out at JS level')), 5000)
+    );
+
+    location = await Promise.race([locationPromise, timeoutPromise]);
   } catch (err) {
     console.warn("GPS lock failed, falling back to last known position:", err.message);
     location = await Location.getLastKnownPositionAsync();

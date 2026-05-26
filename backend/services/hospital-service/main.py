@@ -83,8 +83,16 @@ def _filter_specialized_facilities(facilities: list, req: NearbyRequest) -> list
         if is_match:
             filtered.append(f)
             
-    # Fallback logic
+    # Fallback logic: If we found specialized hospitals but they are very far away
     if is_specialized_request and len(filtered) > 0:
+        # Check if the closest specialized hospital is > 4km away
+        closest_specialized_dist = min((getattr(f, 'distance_km', 999) for f in filtered), default=999)
+        if closest_specialized_dist > 4.0:
+            # Check if there is ANY hospital/trauma center much closer (e.g., < 4km)
+            closest_general_dist = min((getattr(f, 'distance_km', 999) for f in facilities), default=999)
+            if closest_general_dist < closest_specialized_dist:
+                # If a general hospital/trauma center is closer, ignore the 4km+ specialized filter
+                return facilities
         return filtered
         
     return facilities
