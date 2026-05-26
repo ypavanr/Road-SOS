@@ -3,6 +3,9 @@ import * as Device from 'expo-device';
 import * as Battery from 'expo-battery';
 
 let dynamicMock = null;
+let cachedLocationData = null;
+let lastLocationTime = 0;
+const LOCATION_CACHE_MS = 30000; // 30 seconds
 
 export const setManualMockLocation = (lat, lon) => {
   if (!lat || !lon) {
@@ -15,6 +18,12 @@ export const setManualMockLocation = (lat, lon) => {
 export const getManualMockLocation = () => dynamicMock;
 
 export const getLocationData = async () => {
+  const now = Date.now();
+  if (cachedLocationData && (now - lastLocationTime) < LOCATION_CACHE_MS) {
+    console.log("Using cached location data (under 30s)");
+    return cachedLocationData;
+  }
+
   let batteryLevel = null;
   try {
     const level = await Battery.getBatteryLevelAsync();
@@ -80,7 +89,7 @@ export const getLocationData = async () => {
     }
   } catch(e) {}
 
-  return {
+  const finalData = {
     latitude:     location.coords.latitude,
     longitude:    location.coords.longitude,
     accuracy:     location.coords.accuracy,
@@ -90,4 +99,8 @@ export const getLocationData = async () => {
     deviceModel:  Device.modelName || Device.deviceName || 'Unknown Device',
     isoCountryCode,
   };
+
+  cachedLocationData = finalData;
+  lastLocationTime = Date.now();
+  return finalData;
 };

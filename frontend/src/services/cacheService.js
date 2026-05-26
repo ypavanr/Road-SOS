@@ -35,7 +35,7 @@ export const updateCacheIfNeeded = async (lat, lon) => {
 
   try {
     const headers = { 'Content-Type': 'application/json' };
-    const body = JSON.stringify({ lat, lon, radius_m: 10000 }); // search within 10km for cache
+    const body = JSON.stringify({ lat, lon, radius_m: 20000 }); // search within 20km for cache
 
     const [medRes, roadRes] = await Promise.allSettled([
       fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
@@ -43,13 +43,23 @@ export const updateCacheIfNeeded = async (lat, lon) => {
     ]);
 
     let freshFacilities = [];
+    let fetchSuccess = false;
+
     if (medRes.status === 'fulfilled' && medRes.value.ok) {
       const d = await medRes.value.json();
       freshFacilities = freshFacilities.concat(d.facilities || []);
+      fetchSuccess = true;
     }
     if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
       const d = await roadRes.value.json();
       freshFacilities = freshFacilities.concat(d.facilities || []);
+      fetchSuccess = true;
+    }
+
+    // If both failed (we are offline or server is down), abort and retain old cache
+    if (!fetchSuccess) {
+      console.warn('Cache refresh failed: Could not fetch from server, retaining old cache.');
+      return false;
     }
 
     // Filter top 3 of police, trauma, hospital, fire and other services
@@ -59,7 +69,7 @@ export const updateCacheIfNeeded = async (lat, lon) => {
     cacheTypes.forEach((type) => {
       const matching = freshFacilities
         .filter((f) => f.type === type)
-        // Sort by distance (if available, otherwise by ETA, but assume API returns somewhat sorted)
+        // Sort by distance
         .sort((a, b) => (a.distance_km || 99) - (b.distance_km || 99))
         .slice(0, 3);
       cachedFacilities.push(...matching);
@@ -105,9 +115,10 @@ export const updateCacheIfNeeded = async (lat, lon) => {
     };
 
     await setItem(CACHE_KEY, newCache);
+    console.log('Cache updated successfully with', cachedFacilities.length, 'facilities');
     return true; // Cache updated
   } catch (e) {
-    console.error('Failed to update facility cache', e);
+    console.error('Failed to update facility cache, retaining old cache:', e);
     return false;
   }
 };

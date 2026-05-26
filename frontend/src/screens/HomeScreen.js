@@ -301,7 +301,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     try {
       setContextLoadingMsg('Preloading nearby emergency services...');
       const headers = { 'Content-Type': 'application/json' };
-      const body = JSON.stringify({ lat, lon, radius_m: 10000 });
+      const body = JSON.stringify({ lat, lon, radius_m: 20000 });
 
       const [medRes, roadRes] = await Promise.allSettled([
         fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
@@ -309,88 +309,44 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       ]);
 
       let freshFacilities = [];
+      let fetchSuccess = false;
       if (medRes.status === 'fulfilled' && medRes.value.ok) {
         const d = await medRes.value.json();
         freshFacilities = freshFacilities.concat(d.facilities || []);
+        fetchSuccess = true;
       }
       if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
         const d = await roadRes.value.json();
         freshFacilities = freshFacilities.concat(d.facilities || []);
+        fetchSuccess = true;
+      }
+
+      setContextLoadingMsg(null);
+
+      if (!fetchSuccess) {
+        console.log('Preload failed to reach server, falling back to cache');
+        const cached = await getCachedFacilities();
+        if (cached && cached.length > 0) {
+           setFacilities(cached);
+           return cached;
+        }
+        return [];
       }
 
       setFacilities(freshFacilities);
-      setContextLoadingMsg(null);
       return freshFacilities;
     } catch (e) {
       console.error('Preload failed', e);
       setContextLoadingMsg(null);
+      const cached = await getCachedFacilities();
+      if (cached && cached.length > 0) {
+         setFacilities(cached);
+         return cached;
+      }
       return [];
     }
   }, [setFacilities]);
 
-  // ── Incremental fetch for missing types (Fallback) ──────────
-  const incrementalFetchFacilities = useCallback(async (lat, lon, missingTypes, existingFacilities, clsData = null) => {
-    try {
-      setContextLoadingMsg('Searching wider area for specific services...');
-      let allFacilities = [...existingFacilities];
-      let currentRadius = 15000; // Next step after 10km is 10+5=15km
-      const MAX_RADIUS = 20000;
-      const headers = { 'Content-Type': 'application/json' };
-
-      while (currentRadius <= MAX_RADIUS) {
-        setContextLoadingMsg(`Searching within ${currentRadius / 1000}km...`);
-        const bodyObj = {
-          lat,
-          lon,
-          radius_m: currentRadius,
-          patient_gender: clsData?.patient_gender,
-          patient_demographic: clsData?.patient_demographic,
-          injury_type: clsData?.injury_type
-        };
-        const body = JSON.stringify(bodyObj);
-
-        const [medRes, roadRes] = await Promise.allSettled([
-          fetch(`${API_GATEWAY_URL}/nearby/medical`, { method: 'POST', headers, body }),
-          fetch(`${API_GATEWAY_URL}/nearby/roadside`, { method: 'POST', headers, body }),
-        ]);
-
-        let freshFacilities = [];
-        if (medRes.status === 'fulfilled' && medRes.value.ok) {
-          const d = await medRes.value.json();
-          freshFacilities = freshFacilities.concat(d.facilities || []);
-        }
-        if (roadRes.status === 'fulfilled' && roadRes.value.ok) {
-          const d = await roadRes.value.json();
-          freshFacilities = freshFacilities.concat(d.facilities || []);
-        }
-
-        // Merge keeping unique ids
-        const existingIds = new Set(allFacilities.map(f => f.id));
-        const newUnique = freshFacilities.filter(f => !existingIds.has(f.id));
-        allFacilities = [...allFacilities, ...newUnique];
-
-        let stillMissing = false;
-        for (const type of missingTypes) {
-          const matching = allFacilities.filter(f => f.type === type);
-          if (matching.length < 2) {
-            stillMissing = true;
-            break;
-          }
-        }
-
-        if (!stillMissing) break;
-        currentRadius += 5000; // Increment by 5km
-      }
-
-      setFacilities(allFacilities);
-      setContextLoadingMsg(null);
-      return allFacilities;
-    } catch (e) {
-      console.error('Incremental fetch failed', e);
-      setContextLoadingMsg(null);
-      return existingFacilities;
-    }
-  }, [setFacilities]);
 
   // Mapping of category filters to their respective dummy authority phone numbers
   const FILTER_TO_AUTHORITY = {
@@ -414,38 +370,15 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       setSelectedService(filterId);
       setIsEmergencyMode(true);
 
+      // If we are still waiting on preload to finish, await it.
       setContextLoadingMsg('Checking preloaded data...');
       let currentFacilities = facilities;
       if (preloadPromiseRef.current) {
         currentFacilities = await preloadPromiseRef.current;
       }
-
-      const isSpecialized = (data.patient_demographic && data.patient_demographic !== 'adult') ||
-        (data.injury_type && data.injury_type !== 'general');
-      const missingTypes = [];
-
-      if (!isSpecialized) {
-        for (const requiredType of (data.specific_facilities || [])) {
-          const matching = currentFacilities.filter(f => f.type === requiredType);
-          if (matching.length < 2) {
-            missingTypes.push(requiredType);
-          }
-        }
-      } else {
-        // If specialized, ignore preloaded general facilities to force a strict API fetch
-        currentFacilities = [];
-        for (const requiredType of (data.specific_facilities || [])) {
-          missingTypes.push(requiredType);
-        }
-      }
-
-      let updatedFacilities = currentFacilities;
-      if (missingTypes.length > 0) {
-        const fetched = await incrementalFetchFacilities(lat, lon, missingTypes, currentFacilities, data);
-        if (fetched && fetched.length > 0) {
-          updatedFacilities = fetched;
-        }
-      }
+      
+      // Instantly apply preloaded facilities without any live searching overhead.
+      setFacilities(currentFacilities);
 
       // Auto-Dispatch SMS based on AI classification
       const targetPhones = [];
@@ -475,7 +408,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
 
       onNavigateToMap();
     },
-    [setClassification, setSelectedService, setIsEmergencyMode, incrementalFetchFacilities, location, userData, onNavigateToMap, facilities],
+    [setClassification, setSelectedService, setIsEmergencyMode, location, userData, onNavigateToMap, facilities, setFacilities],
   );
 
   // ── Classify text and decide what to do ──────────────────────
@@ -771,7 +704,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header with Language Selector */}
         <View style={styles.headerRow}>
-          <TouchableOpacity activeOpacity={1} onPress={handleSecretTap}>
+          <TouchableOpacity activeOpacity={1} onPress={handleSecretTap} style={{ flex: 1, paddingRight: 8 }}>
             <Text style={styles.headerTitle}>{t('emergency_dashboard', 'Emergency Dashboard')}</Text>
           </TouchableOpacity>
           <LanguageSelector />
