@@ -554,37 +554,26 @@ export default function MapScreen({ onBack }) {
       if (!cfg) return;
       setFetchingFacilities(true);
       try {
-        let currentRadius = 10000;
-        const MAX_RADIUS = 20000;
         let allFresh = [];
-        let matchingCount = 0;
 
-        while (currentRadius <= MAX_RADIUS) {
-          const bodyObj = {
-            lat,
-            lon,
-            radius_m: currentRadius,
-            patient_gender: classification?.patient_gender,
-            patient_demographic: classification?.patient_demographic,
-            injury_type: classification?.injury_type
-          };
+        const bodyObj = {
+          lat,
+          lon,
+          radius_m: 20000,
+          patient_gender: classification?.patient_gender,
+          patient_demographic: classification?.patient_demographic,
+          injury_type: classification?.injury_type
+        };
 
-          const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyObj),
-          });
+        const resp = await fetch(`${API_GATEWAY_URL}${cfg.endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyObj),
+        });
 
-          if (resp.ok) {
-            const data = await resp.json();
-            allFresh = data.facilities || [];
-            matchingCount = allFresh.filter((f) => cfg.facilityTypes.includes(f.type)).length;
-
-            if (matchingCount >= 2) {
-              break;
-            }
-          }
-          currentRadius += 5000;
+        if (resp.ok) {
+          const data = await resp.json();
+          allFresh = data.facilities || [];
         }
 
         setFacilities((prev) => {
