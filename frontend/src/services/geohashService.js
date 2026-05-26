@@ -15,7 +15,7 @@ let isAlertVisible = false;
 
 const processAlertQueue = () => {
   if (isAlertVisible || alertQueue.length === 0) return;
-  
+
   isAlertVisible = true;
   const data = alertQueue.shift();
 
@@ -25,12 +25,12 @@ const processAlertQueue = () => {
     setTimeout(processAlertQueue, 500);
   };
 
-  const buttons = [{ 
-    text: "Close", 
+  const buttons = [{
+    text: "Close",
     style: "cancel",
     onPress: handleDismiss
   }];
-  
+
   if (data.url) {
     buttons.push({
       text: "View on Map",
@@ -86,7 +86,7 @@ export const updateGeohashSubscription = async (latitude, longitude) => {
       geohash: currentGeohash
     });
     console.log(`[Geohash Service] Token assigned to grid ${currentGeohash}`);
-    
+
     // Connect to WebSocket for real-time 2-phone demo
     connectGeohashWebSocket(currentGeohash);
   } catch (e) {
@@ -98,7 +98,7 @@ export const connectGeohashWebSocket = async (grid) => {
   if (activeWebSocket) {
     activeWebSocket.close();
   }
-  
+
   let phone = "guest";
   try {
     const userData = await AsyncStorage.getItem('userData');
@@ -106,14 +106,14 @@ export const connectGeohashWebSocket = async (grid) => {
       const parsed = JSON.parse(userData);
       phone = parsed.phone ? parsed.phone.replace(/[^0-9+]/g, '') : "guest";
     }
-  } catch (e) {}
-  
+  } catch (e) { }
+
   const ws = new WebSocket(`${WEBSOCKET_URL}/ws/${grid}/${phone}`);
-  
+
   ws.onopen = () => {
     console.log(`[WebSocket] Connected to grid: ${grid}`);
   };
-  
+
   ws.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
@@ -123,11 +123,11 @@ export const connectGeohashWebSocket = async (grid) => {
       console.error("Failed to parse websocket message", err);
     }
   };
-  
+
   ws.onerror = (e) => {
     console.log('[WebSocket] Error: ', e.message);
   };
-  
+
   activeWebSocket = ws;
 };
 
@@ -149,11 +149,19 @@ export const initBackgroundGeohashTracking = async () => {
   }
 
   // Also do an initial fetch
-  const loc = await Location.getLastKnownPositionAsync();
-  if (loc) {
-    updateGeohashSubscription(loc.coords.latitude, loc.coords.longitude);
+  try {
+    let loc = await Location.getLastKnownPositionAsync();
+    if (!loc) {
+      loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    }
+    if (loc) {
+      await updateGeohashSubscription(loc.coords.latitude, loc.coords.longitude);
+    }
+  } catch (e) {
+    console.warn("[Geohash Tracking] Could not get location: ", e.message);
   }
 };
+
 
 // Compute 9 surrounding geohashes for broadcasting SOS
 export const getTargetGeohashes = (lat, lon) => {
@@ -164,11 +172,11 @@ export const getTargetGeohashes = (lat, lon) => {
 export const broadcastSOSToGeohashes = async (lat, lon, message, targetPhones = [], contactMessage = null, senderPhone = null) => {
   const grids = getTargetGeohashes(lat, lon);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-  
+
   // Sanitize target phones to ensure they match the connected websocket keys
   const safeTargetPhones = targetPhones.map(p => p.replace(/[^0-9+]/g, ''));
   const safeSenderPhone = senderPhone ? senderPhone.replace(/[^0-9+]/g, '') : null;
-  
+
   try {
     await axios.post(`${NOTIFICATION_SERVICE_URL}/trigger-sos`, {
       geohashes: grids,
