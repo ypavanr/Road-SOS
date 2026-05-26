@@ -108,6 +108,7 @@ import { enqueueSOS } from '../services/offlineQueueService';
 import * as SMS from 'expo-sms';
 import { useLanguage } from '../core/i18n/hooks/useLanguage';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
+import { broadcastSOSToGeohashes } from '../services/geohashService';
 
 export default function HomeScreen({ onNavigateToMap, userData }) {
   const { t, changeLanguage } = useLanguage();
@@ -409,6 +410,15 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           isPoliceInvolved,
           isNonMedical
         ).catch((err) => console.error('AI automatic SMS failed:', err));
+
+        // ── Broadcast to Nearby App Users (Geohash Pub/Sub) ──
+        // This hits the backend API, which then iterates through all active
+        // WebSocket connections in those 9 grids and pushes the alert to them instantly!
+        broadcastSOSToGeohashes(
+          lat, 
+          lon, 
+          `URGENT: Road-SOS Alert! A severe incident was reported less than 5km from your location. Please yield to emergency vehicles.`
+        );
       }
 
       onNavigateToMap();

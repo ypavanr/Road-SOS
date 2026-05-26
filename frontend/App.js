@@ -13,6 +13,7 @@ import { EmergencyProvider } from './src/context/EmergencyContext';
 import ConnectivityMonitor from './src/services/connectivityMonitor';
 import { initI18n } from './src/core/i18n';
 import { useLanguageStore } from './src/store/languageStore';
+import { initBackgroundGeohashTracking } from './src/services/geohashService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('Loading');
@@ -31,6 +32,9 @@ export default function App() {
         } else {
           setCurrentScreen('Registration');
         }
+        
+        // Start background proximity tracking
+        initBackgroundGeohashTracking().catch(console.warn);
       } catch (e) {
         setCurrentScreen('Registration');
       }

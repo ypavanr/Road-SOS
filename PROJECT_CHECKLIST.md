@@ -38,6 +38,7 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Non-Medical Incident Dispatch**: If AI classification is strictly a "Puncture" or "Vehicle Assistant" emergency (non-medical), route SMS only to puncture/towing shops (and potentially police) instead of hospitals or trauma centers or emergency contacts(but if the time is in the night then to emergency contacts).
 - [x] **Automatic Language Bug**: Fix the issue where the display language does not automatically change when the user's physical location/country changes.
 - [x] **Complex Injury Combinations & Classification Bugs**: Test and refine AI routing for overlapping edge cases (e.g., child + pregnant, pregnant + eye injury). Fix the second SMS logic for normal map/hospital routing. Fix the facility finding logic and re-evaluate classification errors (bystander vs victim).
+- [x] **Geohash Proximity Notifications**: Implemented custom Geohash grid-based proximity broadcasting using pure WebSockets (bypassing Expo Go push limits) to dynamically alert active app users physically near the accident zone with native popups and Map links.
 ---
 
 ## 🚧 Remaining Tasks
@@ -53,11 +54,10 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 
 
 ### ⚙️ Dispatch Logic & Overrides
-- [Scrapped] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
+- [ Scrapped ] **Overriding Manual**: Trigger SMS messages directly without users input required anywhere.
   (ONLY CAN BE DONE IN ANDROID APK..plan in notepad.txt)
   - *Assignee:* [ Vibha ]
-- [ ] **Geohash Proximity Notifications**: Research and implement Geohash/Grid-based topic subscriptions (e.g., via Firebase Cloud Messaging) to dynamically push notifications to active app users located physically near the accident zone.
-  - *Assignee:* [ Unassigned ]
+
 ### 📡 Advanced Offline / Peer-to-Peer SOS
 - [ Scrapped ] **Bluetooth Relay (Mesh)**: Transmit SOS via Bluetooth to nearby devices when there is no cell network.
 Implement a timer for the Bluetooth relay system, so if the receiving phone later gains network access, it triggers the location fallback SMS automatically.
@@ -74,7 +74,7 @@ Change emergency contacts numbers
   - *Assignee:* [ Unassigned ]
 ---
 
-- [ ] More research on offline and low netwowk
+- [No Time] More research on offline and low netwowk
 ## 👥 Team Assignments
 
 *Use this section to declare who is currently working on what. Update the assignees above as work begins.*

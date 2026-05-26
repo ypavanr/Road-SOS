@@ -11,7 +11,7 @@ info()    { echo -e "${CYAN}[INFO]${NC}  $1"; }
 success() { echo -e "${GREEN}[OK]${NC}    $1"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 
-ports=(8000 8001 8002 8003 8004 8006 8007)
+ports=(8000 8001 8002 8003 8004 8005 8006 8007 8008)
 
 for port in "${ports[@]}"; do
   PID_FILE="/tmp/road_sos_${port}.pid"

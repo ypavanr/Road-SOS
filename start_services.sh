@@ -171,6 +171,13 @@ start_service \
   "$ROOT/backend/services/sos-service/.venv" \
   "python main.py"
 
+# ── 8. Notification Service (port 8008) ──────────────────────
+start_service \
+  "notification-service" 8008 \
+  "$ROOT/backend/services/notification-service" \
+  "$ROOT/backend/services/notification-service/.venv" \
+  "uvicorn main:app --host 0.0.0.0 --port 8008"
+
 # ── Health Check Summary ──────────────────────────────────────
 echo ""
 echo -e "${CYAN}════════════════════════════════════════${NC}"
@@ -186,6 +193,7 @@ services=(
   "route-service|8005"
   "speech-service|8006"
   "sos-service|8007"
+  "notification-service|8008"
 )
 
 for entry in "${services[@]}"; do
