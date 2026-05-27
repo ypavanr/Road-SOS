@@ -44,6 +44,7 @@ const SERVICES = [
   { id: 'fuel', name: 'Gas Station', icon: 'water', color: '#eab308' },
   { id: 'towing', name: 'Towing Service', icon: 'car', color: '#6366f1' },
   { id: 'tyre', name: 'Puncture Shop', icon: 'hammer', color: '#14b8a6' },
+  { id: 'settings', name: 'User Settings', icon: 'settings', color: '#ffffff', bgColor: '#0f172a', iconBgColor: '#334155', textColor: '#ffffff' },
   { id: 'showroom', name: 'Showroom', icon: 'car-sport', color: '#ec4899' },
 ];
 
@@ -692,6 +693,10 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   };
 
   const handleServiceTap = async (serviceId) => {
+    if (serviceId === 'settings') {
+      Alert.alert("User Settings", "Please restart the app to change user settings.");
+      return;
+    }
     clearEmergency();
     setSelectedService(serviceId);
     setSelectedServiceForModal(serviceId);
@@ -815,7 +820,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         )}
 
         {/* Emergency Numbers Block */}
-        <Text style={[styles.sectionTitle, { fontSize: 14, color: '#64748b', marginTop: 12, marginBottom: 8 }]}>EMERGENCY NUMBERS</Text>
+        <Text style={[styles.sectionTitle, { fontSize: 14, color: '#64748b', marginTop: 12, marginBottom: 8 }]}>{t('emergency_numbers', 'EMERGENCY NUMBERS')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hotlinesScroll}>
           {regionalHotlines.map(hotline => (
             <TouchableOpacity 
@@ -831,7 +836,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
                 )}
               </View>
               <Text style={[styles.hotlineNumber, { color: hotline.color }]}>{hotline.number}</Text>
-              <Text style={styles.hotlineSubtitle} numberOfLines={1}>{hotline.subtitle}</Text>
+              <Text style={styles.hotlineSubtitle} numberOfLines={1}>{t(`hotline_${hotline.id}`, hotline.subtitle)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -917,13 +922,13 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           {SERVICES.map((srv) => (
             <TouchableOpacity
               key={srv.id}
-              style={styles.serviceCard}
+              style={[styles.serviceCard, srv.bgColor && { backgroundColor: srv.bgColor }]}
               onPress={() => handleServiceTap(srv.id)}
             >
-              <View style={[styles.iconWrap, { backgroundColor: srv.color + '15' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: srv.iconBgColor || srv.color + '15' }]}>
                 <Ionicons name={srv.icon} size={28} color={srv.color} />
               </View>
-              <Text style={styles.serviceName}>{t(srv.id, srv.name)}</Text>
+              <Text style={[styles.serviceName, srv.textColor && { color: srv.textColor }]}>{t(srv.id, srv.name)}</Text>
             </TouchableOpacity>
           ))}
         </View>

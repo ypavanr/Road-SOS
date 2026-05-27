@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "検索範囲を広げてみてください。",
   "ai_triage_assessment_title": "AIトリアージ評価",
   "specific_assistance_needed": "特定の支援が必要です：",
-  "ai_emergency_mode_prefix": "AI緊急モード - 最寄りの施設への自動ルーティング"
+  "ai_emergency_mode_prefix": "AI緊急モード - 最寄りの施設への自動ルーティング",
+  "emergency_numbers": "緊急連絡先",
+  "hotline_sos": "国家緊急",
+  "hotline_ambulance": "救急車",
+  "hotline_highway": "高速道路支援",
+  "hotline_police": "警察",
+  "hotline_amb": "救急車",
+  "hotline_nhai": "高速道路支援",
+  "hotline_pol": "警察",
+  "settings": "ユーザー設定"
 }

@@ -42,11 +42,18 @@ This document tracks the overall progress of the Road-SOS system, mapping out wh
 - [x] **Emergency Contact Direct WebSocket (WiFi Bypass)**: Replaced "WiFi Captive Portal" with direct, real-time WebSocket routing. Emergency Contacts now instantly receive a native in-app popup (with map links) over the internet, acting as a real-time addition to the SMS dispatch.
 - [x] **Text Input UI Polish**: Changed "CLASSIFY TEXT" button wording to "SUBMIT" via translation files to be more user-friendly during emergencies.
 - [x] **WebSocket Routing & Safety Constraints**: Implemented safety checks to completely block WebSocket broadcasts (both Geohash and Emergency Contacts) if Police are involved to prevent drawing people to dangerous situations. Ensured the system never broadcasts a proximity alert back to the victim who triggered it.
+- [x] **Translation Coverage**: Added multi-language translation support for the "Emergency Numbers" title, all regional hotline subtitle cards, "Emergency Services", and the "User Settings" card.
+- [x] **Geohash Payload Fix**: Fixed the HTTP 422 crash where bystander proximity alerts were failing due to missing/null payload fields.
+- [x] **User Settings UI**: Placed a dedicated User Settings card (black background) gracefully into the Emergency Services grid.
 ---
 
 ## 🚧 Remaining Tasks
 
 ### 🗺️ Navigation & UI
+- [ ] **User Settings Page**: Implement the actual User Settings interface so users can freely edit their registered emergency contacts after initial onboarding.
+  - *Assignee:* [ Unassigned ]
+- [ ] **Native Popup Translations**: Ensure that all native alert pop-ups (success, failure, warnings, sms emergency services, msgs) properly translate to the user's selected language instead of defaulting to English.
+  - *Assignee:* [ Unassigned ]
 - [ Last ] **User Onboarding & Test Run**: Provide helpful videos for new users explaining how the application works for easy navigation. Implement an interactive "test run" mode to let them practice safely.
 (After everything is done)
   - *Assignee:* [ Unassigned ]

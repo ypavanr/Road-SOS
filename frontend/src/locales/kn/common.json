@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "ಹುಡುಕಾಟವನ್ನು ವಿಸ್ತರಿಸಲು ಪ್ರಯತ್ನಿಸಿ.",
   "ai_triage_assessment_title": "AI ಟ್ರಯಾಜ್ ಮೌಲ್ಯಮಾಪನ",
   "specific_assistance_needed": "ನಿರ್ದಿಷ್ಟ ಸಹಾಯದ ಅಗತ್ಯವಿದೆ:",
-  "ai_emergency_mode_prefix": "AI ತುರ್ತು ಮೋಡ್ - ಹತ್ತಿರದ ಸ್ವಯಂ-ರೂಟಿಂಗ್"
+  "ai_emergency_mode_prefix": "AI ತುರ್ತು ಮೋಡ್ - ಹತ್ತಿರದ ಸ್ವಯಂ-ರೂಟಿಂಗ್",
+  "emergency_numbers": "ತುರ್ತು ಸಂಖ್ಯೆಗಳು",
+  "hotline_sos": "ರಾಷ್ಟ್ರೀಯ ತುರ್ತು",
+  "hotline_ambulance": "ಆಂಬ್ಯುಲೆನ್ಸ್",
+  "hotline_highway": "ಹೆದ್ದಾರಿ ಸಹಾಯ",
+  "hotline_police": "ಪೊಲೀಸ್",
+  "hotline_amb": "ಆಂಬ್ಯುಲೆನ್ಸ್",
+  "hotline_nhai": "ಹೆದ್ದಾರಿ ಸಹಾಯ",
+  "hotline_pol": "ಪೊಲೀಸ್",
+  "settings": "ಬಳಕೆದಾರ ಸೆಟ್ಟಿಂಗ್‌ಗಳು"
 }

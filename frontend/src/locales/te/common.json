@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "శోధనను విస్తరించడానికి ప్రయత్నించండి.",
   "ai_triage_assessment_title": "AI అంచనా",
   "specific_assistance_needed": "నిర్దిష్ట సహాయం అవసరం:",
-  "ai_emergency_mode_prefix": "AI అత్యవసర మోడ్ - ఆటో-రూటింగ్"
+  "ai_emergency_mode_prefix": "AI అత్యవసర మోడ్ - ఆటో-రూటింగ్",
+  "emergency_numbers": "అత్యవసర నంబర్లు",
+  "hotline_sos": "జాతీయ అత్యవసర",
+  "hotline_ambulance": "అంబులెన్స్",
+  "hotline_highway": "హైవే సహాయం",
+  "hotline_police": "పోలీసులు",
+  "hotline_amb": "అంబులెన్స్",
+  "hotline_nhai": "హైవే సహాయం",
+  "hotline_pol": "పోలీసులు",
+  "settings": "వినియోగదారు సెట్టింగ్‌లు"
 }

@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "Installations trouvées. Élargir la recherche.",
   "ai_triage_assessment_title": "Évaluation du triage par l'IA",
   "specific_assistance_needed": "Assistance spécifique requise :",
-  "ai_emergency_mode_prefix": "Mode d'urgence de l'IA - Routage vers"
+  "ai_emergency_mode_prefix": "Mode d'urgence de l'IA - Routage vers",
+  "emergency_numbers": "NUMÉROS D'URGENCE",
+  "hotline_sos": "Urgence Nationale",
+  "hotline_ambulance": "Ambulance",
+  "hotline_highway": "Aide Routière",
+  "hotline_police": "Police",
+  "hotline_amb": "Ambulance",
+  "hotline_nhai": "Aide Routière",
+  "hotline_pol": "Police",
+  "settings": "Paramètres"
 }

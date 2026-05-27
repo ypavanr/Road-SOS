@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "尝试扩大搜索范围。",
   "ai_triage_assessment_title": "AI 评估",
   "specific_assistance_needed": "需要特定协助：",
-  "ai_emergency_mode_prefix": "AI 紧急模式 - 自动路由至最近的"
+  "ai_emergency_mode_prefix": "AI 紧急模式 - 自动路由至最近的",
+  "emergency_numbers": "紧急号码",
+  "hotline_sos": "国家紧急",
+  "hotline_ambulance": "救护车",
+  "hotline_highway": "高速公路援助",
+  "hotline_police": "警察",
+  "hotline_amb": "救护车",
+  "hotline_nhai": "高速公路援助",
+  "hotline_pol": "警察",
+  "settings": "用户设置"
 }

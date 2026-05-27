@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "खोज का विस्तार करने का प्रयास करें।",
   "ai_triage_assessment_title": "AI ट्राइएज आकलन",
   "specific_assistance_needed": "विशिष्ट सहायता की आवश्यकता:",
-  "ai_emergency_mode_prefix": "AI आपातकालीन मोड - निकटतम के लिए ऑटो-रूटिंग"
+  "ai_emergency_mode_prefix": "AI आपातकालीन मोड - निकटतम के लिए ऑटो-रूटिंग",
+  "emergency_numbers": "आपातकालीन नंबर",
+  "hotline_sos": "राष्ट्रीय आपातकालीन",
+  "hotline_ambulance": "एम्बुलेंस",
+  "hotline_highway": "राजमार्ग सहायता",
+  "hotline_police": "पुलिस",
+  "hotline_amb": "एम्बुलेंस",
+  "hotline_nhai": "राजमार्ग सहायता",
+  "hotline_pol": "पुलिस",
+  "settings": "उपयोगकर्ता सेटिंग्स"
 }

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class UpdateLocationRequest(BaseModel):
     token: str
@@ -9,7 +9,7 @@ class TriggerSOSRequest(BaseModel):
     geohashes: List[str]
     target_phones: List[str] = []
     message: str
-    contact_message: str = None
-    sender_phone: str = None
+    contact_message: Optional[str] = None
+    sender_phone: Optional[str] = None
     title: str = "⚠️ URGENT: Road-SOS Alert!"
-    url: str = None
+    url: Optional[str] = None

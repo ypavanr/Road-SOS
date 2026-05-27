@@ -19,5 +19,14 @@
   "tyre": "Puncture",
   "fuel": "Fuel",
   "showroom": "Showroom",
-  "trauma": "Trauma"
+  "trauma": "Trauma",
+  "emergency_numbers": "EMERGENCY NUMBERS",
+  "hotline_sos": "National Emer...",
+  "hotline_ambulance": "Ambulance",
+  "hotline_highway": "Highway Help",
+  "hotline_police": "Police",
+  "hotline_amb": "Ambulance",
+  "hotline_nhai": "Highway Help",
+  "hotline_pol": "Police",
+  "settings": "User Settings"
 }

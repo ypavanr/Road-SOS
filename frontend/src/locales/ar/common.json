@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "تم العثور على منشآت. حاول توسيع نطاق البحث.",
   "ai_triage_assessment_title": "تقييم فرز الذكاء الاصطناعي",
   "specific_assistance_needed": "المساعدة المحددة المطلوبة:",
-  "ai_emergency_mode_prefix": "وضع الطوارئ للذكاء الاصطناعي — التوجيه التلقائي إلى أقرب"
+  "ai_emergency_mode_prefix": "وضع الطوارئ للذكاء الاصطناعي — التوجيه التلقائي إلى أقرب",
+  "emergency_numbers": "أرقام الطوارئ",
+  "hotline_sos": "الطوارئ الوطنية",
+  "hotline_ambulance": "إسعاف",
+  "hotline_highway": "مساعدة الطريق",
+  "hotline_police": "شرطة",
+  "hotline_amb": "إسعاف",
+  "hotline_nhai": "مساعدة الطريق",
+  "hotline_pol": "شرطة",
+  "settings": "إعدادات المستخدم"
 }

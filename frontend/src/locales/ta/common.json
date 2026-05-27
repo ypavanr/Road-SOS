@@ -37,5 +37,14 @@
   "facilities_found_try_expanding": "தேடலை விரிவுபடுத்த முயற்சிக்கவும்.",
   "ai_triage_assessment_title": "AI மதிப்பீடு",
   "specific_assistance_needed": "குறிப்பிட்ட உதவி தேவை:",
-  "ai_emergency_mode_prefix": "AI அவசரகால முறை - தானியங்கி வழிகாட்டி"
+  "ai_emergency_mode_prefix": "AI அவசரகால முறை - தானியங்கி வழிகாட்டி",
+  "emergency_numbers": "அவசரகால எண்கள்",
+  "hotline_sos": "தேசிய அவசரகால",
+  "hotline_ambulance": "ஆம்புலன்ஸ்",
+  "hotline_highway": "நெடுஞ்சாலை உதவி",
+  "hotline_police": "காவல்துறை",
+  "hotline_amb": "ஆம்புலன்ஸ்",
+  "hotline_nhai": "நெடுஞ்சாலை உதவி",
+  "hotline_pol": "காவல்துறை",
+  "settings": "பயனர் அமைப்புகள்"
 }
