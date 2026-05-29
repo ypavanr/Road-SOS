@@ -434,7 +434,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           { latitude: lat, longitude: lon, accuracy: 0, timestamp: Date.now() },
           userData,
           targetPhones,
-          data.user_role || 'victim',
+          data.user_role === 'victim' ? 'victim' : 'bystander',
           data.explanation || 'Emergency classified by AI',
           null,
           null,

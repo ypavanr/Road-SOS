@@ -21,7 +21,7 @@ Analyze the prompt and accurately determine:
 2. What broad categories are involved? (medical, police, roadside)
 3. What specific facilities are needed? Choose ONLY from this strict list:
    hospital, trauma_center, clinic, police, fire_station, towing, roadside_assistance, tyre_shop, car_repair, fuel_station, showroom
-4. What is the user's role? If the user is speaking in the FIRST-PERSON about themselves being injured/affected (e.g. "I am bleeding", "My car broke down"), choose "victim". If the user is speaking in the THIRD-PERSON describing someone else (e.g. "a pregnant woman", "a male patient", "there is a guy"), YOU MUST STRICTLY choose "bystander". If they are observing (e.g. "I witnessed an accident"), choose "bystander". Otherwise "unknown".
+4. What is the user's role? Choose "victim" ONLY IF the user explicitly uses FIRST-PERSON pronouns indicating they are the ones injured or affected (e.g., "I am bleeding", "my car broke down", "help me"). Choose "bystander" if they use THIRD-PERSON pronouns or describe someone else (e.g., "a pregnant woman", "he is hurt"). CRITICAL: If the prompt is just a keyword or lacks clear pronouns (e.g., "maternity hospital", "heart attack", "accident"), you MUST DEFAULT TO "bystander". Do NOT assume "victim" unless there is explicit first-person involvement.
 5. What is the patient's gender? Based on mentions like "he", "she", "male", "female", "woman", "man", choose "male", "female", or "unknown".
 6. What is the patient's demographic? Choose from: "pregnant", "child", "elderly", or "adult" (default to "adult").
 7. What is the specific injury type? Choose from: "eye", "head", "burn", "cardiac", or "general" (default to "general").
@@ -95,7 +95,7 @@ async def classify_text(text: str) -> ClassifyResponse:
             explanation=data.get("explanation", "Groq LLM inferred the categories."),
             confidence_score=data.get("confidence_score", 0.9),
             engine_used="llm",
-            user_role=data.get("user_role", "unknown"),
+            user_role=data.get("user_role", "bystander"),
             patient_gender=data.get("patient_gender", "unknown"),
             patient_demographic=data.get("patient_demographic", "adult"),
             injury_type=data.get("injury_type", "general")
