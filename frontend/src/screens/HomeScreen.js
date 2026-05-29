@@ -111,6 +111,8 @@ import { useLanguage } from '../core/i18n/hooks/useLanguage';
 import { LanguageSelector } from '../components/LanguageSelector/LanguageSelector';
 import { broadcastSOSToGeohashes } from '../services/geohashService';
 
+const userConfirmedCache = {};
+
 export default function HomeScreen({ onNavigateToMap, userData }) {
   const { t, changeLanguage } = useLanguage();
   const {
@@ -477,6 +479,15 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   const handleClassify = useCallback(
     async (textToClassify, lat, lon) => {
       if (!textToClassify) return;
+      const normalizedText = textToClassify.toLowerCase().trim();
+
+      // Check if we have a cached user confirmation for this text
+      if (userConfirmedCache[normalizedText]) {
+        const cachedData = userConfirmedCache[normalizedText];
+        await applyClassification(cachedData, lat, lon);
+        return;
+      }
+
       try {
         setContextLoadingMsg('Analyzing emergency...');
         const response = await axios.post(`${API_GATEWAY_URL}/classify`, {
@@ -497,7 +508,7 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
           await applyClassification(data, lat, lon);
         } else {
           // Low confidence → ask user to confirm
-          setPendingClassification({ data, lat, lon });
+          setPendingClassification({ text: normalizedText, data, lat, lon });
         }
       } catch (e) {
         console.error('Classification failed:', e);
@@ -753,10 +764,17 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
   // ── Low-confidence confirmation handlers ──────────────────────
   const confirmServices = async (specificFacilities) => {
     if (!pendingClassification) return;
-    const { data, lat, lon } = pendingClassification;
+    const { text, data, lat, lon } = pendingClassification;
     setPendingClassification(null);
+    
+    const finalizedData = { ...data, specific_facilities: specificFacilities };
+    
+    if (text) {
+      userConfirmedCache[text] = finalizedData;
+    }
+
     await applyClassification(
-      { ...data, specific_facilities: specificFacilities },
+      finalizedData,
       lat,
       lon,
     );
