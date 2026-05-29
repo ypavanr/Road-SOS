@@ -324,19 +324,25 @@ export default function MapScreen({ onBack }) {
     const rawBest = getBestPerServiceType(facilities, classification.specific_facilities, classification);
 
     // Deduplicate medical requirements for routing: keep only the NEAREST one out of trauma_center, hospital, clinic
+    // BUT favor the primary type if it's medical.
     const medicalKeys = ['trauma_center', 'hospital', 'clinic'].filter(k => rawBest[k]);
     if (medicalKeys.length > 1) {
-      // Find the one with the lowest distance (or ETA)
+      const primaryType = getPrimaryFacilityType(classification.specific_facilities, classification, facilities);
       let bestMedKey = medicalKeys[0];
-      let bestMedVal = rawBest[bestMedKey].distance_km || 999;
-
-      for (let i = 1; i < medicalKeys.length; i++) {
-        const key = medicalKeys[i];
-        const val = rawBest[key].distance_km || 999;
-        if (val < bestMedVal) {
-          bestMedVal = val;
-          bestMedKey = key;
-        }
+      
+      if (medicalKeys.includes(primaryType)) {
+         bestMedKey = primaryType;
+      } else {
+         // Fallback to lowest distance
+         let bestMedVal = rawBest[bestMedKey].distance_km || 999;
+         for (let i = 1; i < medicalKeys.length; i++) {
+           const key = medicalKeys[i];
+           const val = rawBest[key].distance_km || 999;
+           if (val < bestMedVal) {
+             bestMedVal = val;
+             bestMedKey = key;
+           }
+         }
       }
 
       // Remove all medical keys EXCEPT bestMedKey so only one medical route is drawn
@@ -349,8 +355,8 @@ export default function MapScreen({ onBack }) {
   }, [classification, facilities]);
 
   // ── Deduplicate Medical Facilities ───────────────────────────────────────────
-  // If the classifier returns multiple medical types, find the closest one 
-  // after facilities are fetched and keep only that one.
+  // If the classifier returns multiple medical types, keep only the primary one
+  // or the closest one if neither is distinctly primary.
   useEffect(() => {
     if (!classification?.specific_facilities || facilities.length === 0) return;
 
@@ -358,18 +364,23 @@ export default function MapScreen({ onBack }) {
     const requestedMed = classification.specific_facilities.filter(f => medKeys.includes(f));
 
     if (requestedMed.length > 1) {
+      const primaryType = getPrimaryFacilityType(classification.specific_facilities, classification, facilities);
       let bestMedKey = requestedMed[0];
-      let bestMedVal = Infinity;
-
-      for (const key of requestedMed) {
-        const matches = facilities.filter(f => f.type === key);
-        if (matches.length > 0) {
-          const minVal = Math.min(...matches.map(m => m.distance_km || Infinity));
-          if (minVal < bestMedVal) {
-            bestMedVal = minVal;
-            bestMedKey = key;
-          }
-        }
+      
+      if (requestedMed.includes(primaryType)) {
+         bestMedKey = primaryType;
+      } else {
+         let bestMedVal = Infinity;
+         for (const key of requestedMed) {
+           const matches = facilities.filter(f => f.type === key);
+           if (matches.length > 0) {
+             const minVal = Math.min(...matches.map(m => m.distance_km || Infinity));
+             if (minVal < bestMedVal) {
+               bestMedVal = minVal;
+               bestMedKey = key;
+             }
+           }
+         }
       }
 
       const newSpecific = classification.specific_facilities.filter(f => !medKeys.includes(f) || f === bestMedKey);
@@ -405,7 +416,7 @@ export default function MapScreen({ onBack }) {
       return;
     }
 
-    const primaryType = getPrimaryFacilityType(classification.specific_facilities);
+    const primaryType = getPrimaryFacilityType(classification.specific_facilities, classification, facilities);
     const filterId = facilityTypeToFilter(primaryType);
     setActiveFilter(filterId);
     setIsEmergencyMode(true);
@@ -487,7 +498,7 @@ export default function MapScreen({ onBack }) {
 
       const newMultiRoutes = {};
       const fetchPromises = [];
-      const primaryType = getPrimaryFacilityType(classification?.specific_facilities || []);
+      const primaryType = getPrimaryFacilityType(classification?.specific_facilities || [], classification, facilities);
 
       Object.entries(bestFacilitiesMap).forEach(([svcType, facility]) => {
         if (!facility || svcType === primaryType) return;

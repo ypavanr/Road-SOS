@@ -100,8 +100,34 @@ const PRIORITY_ORDER = [
   'roadside_assistance',
 ];
 
-export function getPrimaryFacilityType(specificFacilities = []) {
-  for (const type of PRIORITY_ORDER) {
+export function getPrimaryFacilityType(specificFacilities = [], classification = null, facilities = []) {
+  let order = [...PRIORITY_ORDER];
+  
+  if (classification) {
+    if (classification.patient_demographic === 'pregnant') {
+      const hasMaternityNearby = facilities.some(f => {
+        if (!f.distance_km || f.distance_km > 6.0) return false;
+        const name = (f.name || '').toLowerCase();
+        const specs = (f.specialties || []).map(s => (s || '').toLowerCase());
+        const keywords = ['maternity', 'women', 'mother', 'gynaecology', 'gynecology', 'maternal'];
+        return keywords.some(kw => name.includes(kw) || specs.some(s => s.includes(kw)));
+      });
+
+      if (hasMaternityNearby) {
+        order = ['hospital', 'clinic', 'trauma_center', ...order.filter(o => !['hospital', 'clinic', 'trauma_center'].includes(o))];
+      }
+    } else if (classification.patient_demographic === 'child' || classification.injury_type === 'eye') {
+      // Prioritize hospitals over trauma centers for specialized needs
+      order = [
+        'hospital', 
+        'clinic', 
+        'trauma_center', 
+        ...order.filter(o => !['hospital', 'clinic', 'trauma_center'].includes(o))
+      ];
+    }
+  }
+
+  for (const type of order) {
     if (specificFacilities.includes(type)) return type;
   }
   return specificFacilities[0] || null;

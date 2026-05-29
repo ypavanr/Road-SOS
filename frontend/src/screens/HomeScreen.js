@@ -368,11 +368,6 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
     async (data, lat, lon) => {
       setClassification(data);
 
-      const primaryType = getPrimaryFacilityType(data.specific_facilities || []);
-      const filterId = facilityTypeToFilter(primaryType);
-      setSelectedService(filterId);
-      setIsEmergencyMode(true);
-
       // If we are still waiting on preload to finish, await it.
       setContextLoadingMsg('Checking preloaded data...');
       let currentFacilities = facilities;
@@ -380,8 +375,41 @@ export default function HomeScreen({ onNavigateToMap, userData }) {
         currentFacilities = await preloadPromiseRef.current;
       }
       
+      const isSpecialized = data.patient_demographic === 'pregnant' || data.patient_demographic === 'child' || data.injury_type === 'eye';
+      if (isSpecialized && !isOffline) {
+        setContextLoadingMsg('Locating specialized facilities...');
+        try {
+          const bodyObj = {
+            lat,
+            lon,
+            radius_m: 20000,
+            patient_gender: data.patient_gender,
+            patient_demographic: data.patient_demographic,
+            injury_type: data.injury_type
+          };
+          const resp = await fetch(`${API_GATEWAY_URL}/nearby/medical`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyObj),
+          });
+          if (resp.ok) {
+            const freshData = await resp.json();
+            const freshFacilities = freshData.facilities || [];
+            const existingIds = new Set(currentFacilities.map((f) => f.id));
+            currentFacilities = [...currentFacilities, ...freshFacilities.filter((f) => !existingIds.has(f.id))];
+          }
+        } catch (e) {
+          console.error('Failed to fetch specialized facilities:', e);
+        }
+      }
+
       // Instantly apply preloaded facilities without any live searching overhead.
       setFacilities(currentFacilities);
+
+      const primaryType = getPrimaryFacilityType(data.specific_facilities || [], data, currentFacilities);
+      const filterId = facilityTypeToFilter(primaryType);
+      setSelectedService(filterId);
+      setIsEmergencyMode(true);
 
       // Auto-Dispatch SMS based on AI classification
       const targetPhones = [];
